@@ -12,11 +12,12 @@ from scipy.signal import find_peaks
 from imblearn.over_sampling import SMOTE
 
 import pickle
+import os
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, confusion_matrix
 
 import seaborn as sns
 from statistics import mean
-
+os.listdir('rawData')
 chunkSize = 12
 
 def extractData(file_path):
@@ -55,6 +56,7 @@ def extractData(file_path):
 
 def lessThan5(data): 
     return [x if x >= 5 else 0 for x in data]
+
 def process_data(data):
 
     bar_presses = []
@@ -81,7 +83,7 @@ def process_file(file_path):
     data = data[:-2]
     data = lessThan5(data)
     bar_presses = process_data(data)
-    return bar_presses, is_frustrated, rat_id
+    return rat_id, is_frustrated, bar_presses
 
 
 
@@ -132,38 +134,19 @@ def calculate_peak_durations(bar_press_forces, threshold):
     
     return peak_durations
 
-files = [
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-04_13h24m.Subject WT L", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-04_13h24m.Subject WT RR", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-05_15h23m.Subject WT RR",
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-05_15h24m.Subject WT L", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-06_19h18m.Subject WT 1 RR", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-06_19h18m.Subject WT 2 L", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-09_13h22m.Subject WT L", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-09_13h22m.Subject WT RR", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-09_20h56m.Subject WT 1 RR", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-09_20h57m.Subject WT 2 L", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-10_12h49m.Subject WT L", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-10_12h49m.Subject WT RR", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-10_13h06m.Subject WT L", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-10_13h06m.Subject WT RR", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-10_18h04m.Subject WT 1 RR", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-10_18h04m.Subject WT 2 L", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-10_20h45m.Subject WT 1 RR", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-10_20h45m.Subject WT 2 L", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-10_22h19m.Subject WT 1 RR", 
-    "/Users/bacluix/Documents/rat-model/data/!2024-06-10_22h19m.Subject WT 2 L"
-] 
+
+files = os.listdir("data")
+files = [i for i in files if not i.startswith('.')]
 
 all_data = []
 
 for file in files:
-    bar_presses, is_frustrated, rat_id = process_file(file)
-    all_data.append([bar_presses, is_frustrated, rat_id])
+    ratid, frustration, data = process_file("data/"+file)
+    all_data.append([ratid, frustration, data])
 
-df = pd.DataFrame(all_data, columns=['ratID', 'barPressData', 'frustrationState'])
+df = pd.DataFrame(all_data, columns=['id', 'frustration', 'data'])
+df
 
-
-with open("data/raw.pkl", "wb") as f: 
+with open("output/raw.pkl", "wb") as f: 
     pickle.dump(df,f)
 
