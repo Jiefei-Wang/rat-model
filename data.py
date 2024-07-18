@@ -11,7 +11,7 @@ from sklearn.impute import SimpleImputer
 from scipy.signal import find_peaks 
 from imblearn.over_sampling import SMOTE
 
-
+import pickle
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, confusion_matrix
 
 import seaborn as sns
@@ -162,3 +162,8 @@ for file in files:
     all_data.append([bar_presses, is_frustrated, rat_id])
 
 df = pd.DataFrame(all_data, columns=['ratID', 'barPressData', 'frustrationState'])
+
+
+with open("data/raw.pkl", "wb") as f: 
+    pickle.dump(df,f)
+

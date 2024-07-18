@@ -1,11 +1,15 @@
 def extractData(file_path):
     data = []
     start_processing = False
-    
+    is_frustrated = 0
+
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
     for line in lines:
+        if "EXT" in line:
+            is_frustrated = 1  
+        
         if "P:" in line:
             start_processing = True
             continue
@@ -20,12 +24,10 @@ def extractData(file_path):
                 numbers = parts[1:]
                 data.extend(map(float, numbers))
 
-    if not data:
-        print("No data found in file.")
-    else:
-        print("Data extracted successfully.")
-
+    data.append(is_frustrated)
     return data
+
+
 
 def lessThan5(data): 
     return [x if x >= 5 else 0 for x in data]
