@@ -1,3 +1,23 @@
 from read_data import read_data
-
+from data_management import chunk_data
+from feature_extraction import calculate_duration, calculate_max_force, calculate_peaks, calculate_max_duration, add_percentile_columns
 df = read_data('data')
+df2 = chunk_data(df, 8) 
+
+
+## feature extraction
+df3=df2.copy()
+df3['duration'] = calculate_duration(df3['data'])
+df3['max_force'] = calculate_max_force(df3['data'])
+df3['num_of_peaks'] = calculate_peaks(df3['data'])
+df3['max_duration'] = calculate_max_duration(df3['data'])
+df3 = df3.drop('data', axis = 1)
+add_percentile_columns(df3, 'duration', [25, 50, 75])
+add_percentile_columns(df3, 'max_force', [25, 50, 75])
+add_percentile_columns(df3, 'num_of_peaks', [25, 50, 75])
+add_percentile_columns(df3, 'max_duration', [25, 50, 75])
+df3['range_duration'] = abs(df3['duration_25'] - df3['duration_75'])
+df3['range_force'] = abs(df3['max_force_25'] - df3['max_force_75'])
+df3['range_peaks'] = abs(df3['num_of_peaks_25'] - df3['num_of_peaks_75'])
+df3['range_max_duration'] = abs(df3['max_duration_25'] - df3['max_duration_75'])
+df3 = df3.drop(columns = ['duration' , 'max_force', 'num_of_peaks', 'max_duration'], axis = 1)
