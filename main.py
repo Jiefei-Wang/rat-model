@@ -1,9 +1,11 @@
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
 from read_data import read_data
 from data_management import chunk_data
 from feature_extraction import calculate_duration, calculate_max_force, calculate_peaks, calculate_max_duration, add_percentile_columns
+from model import logistic_model
 df = read_data('data')
 df2 = chunk_data(df, 8) 
-
 
 ## feature extraction
 df3=df2.copy()
@@ -21,3 +23,14 @@ df3['range_force'] = abs(df3['max_force_25'] - df3['max_force_75'])
 df3['range_peaks'] = abs(df3['num_of_peaks_25'] - df3['num_of_peaks_75'])
 df3['range_max_duration'] = abs(df3['max_duration_25'] - df3['max_duration_75'])
 df3 = df3.drop(columns = ['duration' , 'max_force', 'num_of_peaks', 'max_duration'], axis = 1)
+
+##model 
+df4 = df3.copy() 
+
+X = df4.drop(columns=['frustration', 'id'], axis = 1)
+y = df4['frustration']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+predictions = logistic_model(y_train, X_train, X_test)
+roc_auc = roc_auc_score(y_test.tolist(), predictions)
