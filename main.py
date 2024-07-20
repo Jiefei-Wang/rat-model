@@ -3,9 +3,9 @@ from sklearn.model_selection import train_test_split
 from read_data import read_data
 from data_management import chunk_data
 from feature_extraction import calculate_duration, calculate_max_force, calculate_peaks, calculate_max_duration, add_percentile_columns
-from model import logistic_model
+from model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
 df = read_data('data')
-df2 = chunk_data(df, 8) 
+df2 = chunk_data(df, 5) 
 
 ## feature extraction
 df3=df2.copy()
@@ -32,5 +32,17 @@ y = df4['frustration']
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-predictions = logistic_model(y_train, X_train, X_test)
-roc_auc = roc_auc_score(y_test.tolist(), predictions)
+predictions_log = logistic_model(y_train, X_train, X_test)
+roc_auc_log = roc_auc_score(y_test.tolist(), predictions_log)
+
+predictions_tree = random_forest_model(y_train, X_train, X_test)
+roc_auc_tree = roc_auc_score(y_test.tolist(), predictions_tree)
+
+predictions_gb = gradient_boosting_model(y_train, X_train, X_test)
+roc_auc_gb = roc_auc_score(y_test.tolist(), predictions_gb)
+
+
+average_auc_log, auc_list_log = cross_validate_auc(df4, 'frustration', logistic_model)
+average_auc_tree, auc_list_tree = cross_validate_auc(df4, 'frustration', random_forest_model)
+average_auc_gb, auc_list_gb = cross_validate_auc(df4, 'frustration', gradient_boosting_model)
+
