@@ -1,7 +1,32 @@
 from scipy.signal import find_peaks
-from read_data import calculate_peak_durations
 import numpy as np
-rolling_windows_values = 3
+
+def calculate_peak_durations(bar_press_forces, threshold):
+    threshold = 10
+    peaks, _ = find_peaks(bar_press_forces)
+    peak_durations = []
+    
+    for peak in peaks:
+        peak_value = bar_press_forces[peak]
+        lower_bound = peak_value - threshold
+        upper_bound = peak_value + threshold
+        
+        # Find the start of the peak
+        start = peak
+        while start > 0 and bar_press_forces[start] >= lower_bound:
+            start -= 1
+        
+        # Find the end of the peak
+        end = peak
+        while end < len(bar_press_forces) - 1 and bar_press_forces[end] >= lower_bound:
+            end += 1
+        
+        # Calculate duration
+        duration = end - start
+        peak_durations.append(duration)
+    
+    return peak_durations
+
 
 def calculate_duration(x): 
     return x.apply(lambda presses: [len(press) for press in presses])
@@ -18,6 +43,7 @@ def calculate_max_duration(x):
 )
 
 def add_percentile_columns(df, array_column, percentiles):
+    df = df.copy()
     def calculate_percentiles(arr, p):
         a = np.percentile(arr, p)
         return a.tolist()
