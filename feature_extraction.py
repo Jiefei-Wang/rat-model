@@ -42,11 +42,11 @@ def calculate_max_duration(x):
    lambda presses: [max(calculate_peak_durations(press, 20)) if calculate_peak_durations(press, 20) else 0 for press in presses]
 )
 
+def calculate_percentiles(arr, p):
+    a = np.percentile(arr, p)
+    return a.tolist()
 def add_percentile_columns(df, array_column, percentiles):
     df = df.copy()
-    def calculate_percentiles(arr, p):
-        a = np.percentile(arr, p)
-        return a.tolist()
     for p in percentiles:
         df[f'{array_column}_{p}'] = df[array_column].apply(lambda x: calculate_percentiles(x, p))
     return df

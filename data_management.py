@@ -1,25 +1,40 @@
 import pandas as pd
 
 def chunk_data(df, chunk_size):
-   if chunk_size <= 0:
-      raise ValueError("Chunk size must be a positive integer")
+    """
+    _summary_
 
-   new_rows = []
+    Args:
+        df (DataFrame): A DataFrame containing bar press data
+        chunk_size (num): how many bar presses in each chunk?
+
+    Returns:
+        DataFrame: A DataFrame containing chunks of bar press data
+    """
+    if chunk_size <= 0:
+        raise ValueError("Chunk size must be a positive integer")
     
-   
-   for _, row in df.iterrows():
-      id_val = row['id']
-      frustration_val = row['frustration']
-      data_list = row['data']
-        
-        
-      num_chunks = len(data_list) // chunk_size
-      for i in range(num_chunks):
-         chunk = data_list[i*chunk_size:(i+1)*chunk_size]
-         new_rows.append({'id': id_val, 'frustration': frustration_val, 'data': chunk})
+    df = df.copy()
+    df['data'] = df['data'].apply(lambda x: chunk_data_fun(x, chunk_size))
+    df = df.explode('data').reset_index(drop=True)
+    return df
+
+
+def chunk_data_fun(list_of_list, chunk_size):
+    """
+    _summary_
+
+    Args:
+        list_of_list (List): A list of lists, each list is a bar press data
+        chunk_size (num): how many bar presses in each chunk?
+
+    Returns:
+        List: A list of lists of lists, each list at the second level is a chunk of bar press data
+    """
+    chunks = [list_of_list[i:i + chunk_size] for i in range(0, len(list_of_list), chunk_size)]
     
-   new_df = pd.DataFrame(new_rows)
-   return new_df
+    # chunks = [concate_data(chunk) for chunk in chunks]
+    return chunks
 
 
 def concate_data(list_of_lists):

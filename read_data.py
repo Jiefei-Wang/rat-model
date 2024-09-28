@@ -1,23 +1,17 @@
 import pandas as pd
 import os
+from pathlib import Path
+from tqdm import tqdm
 
 
 def extractData(file_path):
     data = []
     start_processing = False
-    is_frustrated = 0
-    ratID = 1
 
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
     for line in lines:
-        if "Subject" in line: 
-            if "L" in line: 
-                ratID = 2
-        if "EXT" in line:
-            is_frustrated = 1
-        
         if "P:" in line:
             start_processing = True
             continue
@@ -32,14 +26,12 @@ def extractData(file_path):
                 numbers = parts[1:]
                 data.extend(map(float, numbers))
 
-    data.append(is_frustrated)
-    data.append(ratID)
     return data
 
 def lessThan5(data): 
     return [x if x >= 5 else 0 for x in data]
 
-def process_data(data):
+def to_bar_press(data):
     bar_presses = []
     current_press = []
     hasLargeVal = False
@@ -59,30 +51,72 @@ def process_data(data):
 
 def process_file(file_path):
     data = extractData(file_path)
-    rat_id = data[-1]
-    is_frustrated = data[-2]
-    data = data[:-2]
     data = lessThan5(data)
-    bar_presses = process_data(data)
-    return rat_id, is_frustrated, bar_presses
+    bar_presses = to_bar_press(data)
+    return bar_presses
+
+def list_all_files(PATH):
+    """
+    List all files path in the folder and subfolders
+    """
+    files_path = []
+    for root, subFolder, all_files in os.walk(PATH):
+        for item in all_files:
+            if item.startswith("!") :
+                fileNamePath = str(os.path.join(root,item))
+                files_path += [fileNamePath]
+    return files_path
 
 
-def read_data(folder):
-    files = os.listdir(folder)
-    files = [i for i in files if not i.startswith('.')]
-
-    all_data = []
-
-    for file in files:
-        print(f"Processing {file}")
-        ratid, frustration, data = process_file(f"{folder}/"+file)
-        all_data.append([ratid, frustration, data])
-
-
-    ## Data frame
-    ## id: rat id
-    ## frustration: 1 if the rat is frustrated, 0 otherwise
-    ## data: A list of bar presses data. List element is a single bar press.
-    df = pd.DataFrame(all_data, columns=['id', 'frustration', 'data'])
+def read_category_data(folder):
+    """
+    Read data from the folder and return a data frame
+    folder name format: {data_category}/*/{data_file}
+    !2024-07-15_15h30m.Subject 14M
+    data name format: !{date}_{time}.Subject {rat_id}{gender}
+    """    
+    
+    files = list_all_files(folder)
+    category = os.path.basename(folder)
+    
+    dt = []
+    ## progress bar
+    for i in tqdm(range(len(files))):
+        file = files[i]
+        data = process_file(file)
+        rat_identifier = file.split('Subject ')[1]
+        ## get integer part of the rat id
+        id = int(''.join(filter(str.isdigit, rat_identifier)))
+        ## gender
+        gender = ''.join(filter(str.isalpha, rat_identifier))
+        ## combine the data
+        rat = {
+            'id': id,
+            'category': category,
+            'gender': gender,
+            'data': data}
+        dt += [rat]
+    
+    
+    df = pd.DataFrame(dt)
     return df
 
+def read_data(data_root):
+    """
+    Read data from the data root folder and return a data frame
+    """
+    ## list folders within the data folder
+    folders = os.listdir(data_root)
+    ## folders only
+    folders = [str(f) for f in Path(data_root).iterdir() if f.is_dir()]
+    
+    dt = []
+    for i in range(len(folders)):
+        print(f"Processing {folders[i]}")
+        folder = folders[i]
+        df = read_category_data(folder)
+        dt += [df]
+    
+    df = pd.concat(dt)
+    df.reset_index(drop=True, inplace=True)
+    return df
