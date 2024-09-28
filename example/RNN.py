@@ -5,8 +5,8 @@ from torch.utils.data import TensorDataset, DataLoader
 from torch import tensor
 import numpy as np
 
-from utils import *
-from model import *
+from example.utils import *
+from example.model import *
     
 files = [
     "./work/Threshold 10/Frustrated/(10) Frustrated Rat 1", 
@@ -147,7 +147,6 @@ def make_predictions(model, x, n_pre = None):
 
 ## logistic regression
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, confusion_matrix
 

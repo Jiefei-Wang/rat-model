@@ -47,7 +47,8 @@ def gradient_boosting_model(train_target, train_features, test_features):
 
 def cross_validate_auc(model_function, X, y, n_splits=10):
     kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
-    auc_list = []
+    y_pred_all = []
+    y_true_all = []
 
     for train_index, test_index in kf.split(X, y):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
@@ -55,11 +56,12 @@ def cross_validate_auc(model_function, X, y, n_splits=10):
         
         predictions = model_function(y_train, X_train, X_test)
         
-        roc_auc = roc_auc_score(y_test, predictions)
-        auc_list.append(roc_auc)
+        y_pred_all.extend(predictions)
+        y_true_all.extend(y_test)
+        
     
-    average_auc = np.mean(auc_list)
-    return average_auc, auc_list
+    roc_auc = roc_auc_score(y_true_all, y_pred_all)
+    return roc_auc
 
 
 
