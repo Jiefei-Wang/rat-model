@@ -1,6 +1,36 @@
 from scipy.signal import find_peaks
 import numpy as np
 
+## features: duration, max_force, num_of_peaks, max_duration
+def convert_to_features(df):
+    df2=df.copy()
+    df2['duration'] = calculate_duration(df2['data'])
+    df2['max_force'] = calculate_max_force(df2['data'])
+    df2['num_of_peaks'] = calculate_peaks(df2['data'])
+    df2['max_duration'] = calculate_max_duration(df2['data'])
+    df2 = df2.drop('data', axis = 1)
+    df2 = add_percentile_columns(df2, 'duration', [25, 50, 75])
+    df2 = add_percentile_columns(df2, 'max_force', [25, 50, 75])
+    df2 = add_percentile_columns(df2, 'num_of_peaks', [25, 50, 75])
+    df2 = add_percentile_columns(df2, 'max_duration', [25, 50, 75])
+    df2['range_duration'] = abs(df2['duration_25'] - df2['duration_75'])
+    df2['range_force'] = abs(df2['max_force_25'] - df2['max_force_75'])
+    df2['range_peaks'] = abs(df2['num_of_peaks_25'] - df2['num_of_peaks_75'])
+    df2['range_max_duration'] = abs(df2['max_duration_25'] - df2['max_duration_75'])
+    df2 = df2.drop(columns = ['duration' , 'max_force', 'num_of_peaks', 'max_duration'], axis = 1)
+    
+    features = [
+    'duration_25', 'duration_50', 'duration_75', 
+    'max_force_25', 'max_force_50', 'max_force_75', 
+    'num_of_peaks_25', 'num_of_peaks_50', 'num_of_peaks_75', 
+    'max_duration_25', 'max_duration_50', 'max_duration_75', 
+    'range_duration', 'range_force', 'range_peaks', 'range_max_duration']
+    X = df2[features]
+    y = df2['frustration']
+    return X, y
+
+
+
 def calculate_peak_durations(bar_press_forces, threshold):
     threshold = 10
     peaks, _ = find_peaks(bar_press_forces)
