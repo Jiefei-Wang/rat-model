@@ -5,12 +5,11 @@ from data_management import chunk_data
 from feature_extraction import convert_to_features
 from model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
 
-df = read_data('data')
-df2 = chunk_data(df, 5) 
+df = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 
-
-## features: duration, max_force, num_of_peaks, max_duration
-X,y = convert_to_features(df2)
+chunk_size = 1
+df2 = chunk_data(df, chunk_size) 
+X,y = convert_to_features(df2, chunk_size)
 
 
 

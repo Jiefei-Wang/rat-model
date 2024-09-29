@@ -1,3 +1,5 @@
+## This script is used to calculate the AUC for different models and chunk sizes.
+
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 import pandas as pd
@@ -8,7 +10,7 @@ from feature_extraction import convert_to_features
 from model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
 
 
-df = read_data('data')
+df = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 
 
 n_splits = 10
@@ -18,7 +20,7 @@ chunk_size_list = range(1, 11)
 for chunk_size in chunk_size_list:
     print(f'Chunk size: {chunk_size}')
     df2 = chunk_data(df, chunk_size) 
-    X,y = convert_to_features(df2)
+    X,y = convert_to_features(df2, chunk_size)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     average_auc_log = cross_validate_auc(logistic_model, X, y, n_splits)
     average_auc_tree = cross_validate_auc(random_forest_model, X, y, n_splits)
