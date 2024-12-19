@@ -3,7 +3,24 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import StratifiedKFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+
+
+def build_logistic_model(train_target, train_features):
+    model = LogisticRegression(max_iter=1000)
+    model.fit(train_features, train_target)
+    return model
+
+def build_random_forest_model(train_target, train_features):
+    model = RandomForestClassifier(n_estimators=100, random_state=42) 
+    model.fit(train_features, train_target)
+    return model
+
+def build_gradient_boosting_model(train_target, train_features):
+    model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=2, random_state=42)
+    model.fit(train_features, train_target)
+    return model
+
 
 
 def logistic_model(train_target, train_features, test_features): 
@@ -18,29 +35,19 @@ def logistic_model(train_target, train_features, test_features):
     Returns:
         np.array: The predicted probabilities for the test set.
     """
-    model = LogisticRegression(max_iter=1000)
-
-    model.fit(train_features, train_target)
-
+    model = build_logistic_model(train_target, train_features)
     probabilities = model.predict_proba(test_features)[:,1]
-
     return probabilities
 
 
 def random_forest_model(train_target, train_features, test_features): 
-    model = DecisionTreeClassifier() 
-
-    model.fit(train_features, train_target)
-
+    model = build_random_forest_model(train_target, train_features)
     probabilities = model.predict_proba(test_features)[:,1]
     
     return probabilities 
 
 def gradient_boosting_model(train_target, train_features, test_features): 
-    model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=2, random_state=42)
-
-    model.fit(train_features, train_target)
-
+    model= build_gradient_boosting_model(train_target, train_features)
     probabilities = model.predict_proba(test_features)[:,1]
 
     return probabilities 

@@ -1,4 +1,30 @@
 import pandas as pd
+import numpy as np
+
+
+def manage_data(df, chunk_size, truncate_size, max_press, standardize):
+    df2 = truncate_data(df, truncate_size)
+    df3 = chunk_data(df2, chunk_size) 
+    df4 = cap_max_press(df3, max_press)
+    df5 = standardize_data(df4) if standardize else df4
+    return df5
+
+def standardize_data(df):
+    df = df.copy()
+    df['data_cb'] = df['data'].apply(lambda x: [i for j in x for i in j])
+    df['data_mean'] = df['data_cb'].apply(lambda x: np.mean(x))
+    df['data_std'] = df['data_cb'].apply(lambda x: np.std(x))
+    df['data'] = df.apply(lambda x: [[(j - x.data_mean)/x.data_std for j in i] for i in x.data], axis=1)
+    df = df.drop(columns=['data_cb', 'data_mean', 'data_std'])
+    return df
+
+
+## make sure the maximum press value is capped at max_press
+def cap_max_press(df, max_press):
+    df = df.copy()
+    df['data'] = df['data'].apply(lambda x: [[min(z, max_press) for z in y] for y in x])
+    return df
+
 
 def chunk_data(df, chunk_size):
     """
@@ -36,21 +62,8 @@ def chunk_data_fun(list_of_list, chunk_size):
     # chunks = [concate_data(chunk) for chunk in chunks]
     return chunks
 
-
-def concate_data(list_of_lists):
-    concatenated_list = []
-    # Iterate over the list of lists
-    for i, sublist in enumerate(list_of_lists):
-        concatenated_list.extend(sublist)  # Add the elements of the sublist to the result list
-        if i < len(list_of_lists) - 1:
-            concatenated_list.append(0)  # Add 0 between the sublists
-            
-    return concatenated_list
-
-
-def truncate_or_padding(data, length=100):
-    if len(data) > length:
-        return data[:length]
-    else:
-        return data + [0]*(length-len(data))
-    
+## cutting off the first n elements of the data
+def truncate_data(df, length):
+    df = df.copy()
+    df['data'] = df['data'].apply(lambda x: x[length:])
+    return df

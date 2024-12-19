@@ -15,7 +15,7 @@ def convert_to_features(df, chunk_size):
         df3['max_force'] = df3['max_force'].apply(lambda x: x[0])
         df3['num_of_peaks'] = df3['num_of_peaks'].apply(lambda x: x[0])
         df3['max_duration'] = df3['max_duration'].apply(lambda x: x[0])
-        features = ['duration', 'max_force', 'num_of_peaks', 'max_duration']
+        features = ['gender','duration', 'max_force', 'num_of_peaks', 'max_duration']
         
     else:
         df3 = add_percentile_columns(df3, 'duration', [25, 50, 75])
@@ -28,6 +28,7 @@ def convert_to_features(df, chunk_size):
         df3['range_max_duration'] = abs(df3['max_duration_25'] - df3['max_duration_75'])
         
         features = [
+            'gender',
             'duration_25', 'duration_50', 'duration_75', 
             'max_force_25', 'max_force_50', 'max_force_75', 
             'num_of_peaks_25', 'num_of_peaks_50', 'num_of_peaks_75', 

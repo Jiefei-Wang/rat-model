@@ -36,7 +36,7 @@ def to_bar_press(data):
     current_press = []
     hasLargeVal = False
     for value in data:
-        if value >= 5.0:
+        if value != 0:
             current_press.append(value)
             if value >= 20: #change to 20 
                 hasLargeVal = True 
@@ -83,16 +83,21 @@ def read_category_data(folder):
     ## progress bar
     for i in tqdm(range(len(files))):
         file = files[i]
+        ## file base name with no folder
+        fileName = os.path.basename(file)
         data = process_file(file)
         rat_identifier = file.split('Subject ')[1]
         ## get integer part of the rat id
         id = int(''.join(filter(str.isdigit, rat_identifier)))
         ## gender
         gender = ''.join(filter(str.isalpha, rat_identifier))
+        ## F,M to 0,1
+        gender = 1 if gender == 'M' else 0
         ## combine the data
         rat = {
             'id': id,
             'category': category,
+            'file': fileName,
             'gender': gender,
             'data': data}
         dt += [rat]
