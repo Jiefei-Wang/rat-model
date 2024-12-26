@@ -10,6 +10,7 @@ df_train = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 
 ##remove first 3 barpress data and save training data as .csv
 df_train['data'] = df_train['data'].apply(lambda x: x[3:] if isinstance(x, list) else x)
+## save the file to the output folder
 output_path = 'output\\df_train.csv'
 df_train.to_csv(output_path, index=False)
 
