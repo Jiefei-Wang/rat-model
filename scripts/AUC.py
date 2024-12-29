@@ -4,8 +4,8 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 
 from read_data import read_data
-from data_management import chunk_data, truncate_data
-from feature_extraction import convert_to_features
+from modules.data_management import chunk_data, truncate_data
+from modules.feature_extraction import convert_to_features
 from model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
 
 

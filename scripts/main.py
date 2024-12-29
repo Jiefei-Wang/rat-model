@@ -1,25 +1,23 @@
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
-from read_data import read_data
-from data_management import manage_data
-from feature_extraction import convert_to_features
-from model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
+from modules.read_data import read_data
+from modules.data_management import manage_data
+from modules.feature_extraction import convert_to_features
+from modules.model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
 from visualization import make_bar_press_plot
 
 df_train = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 
-##remove first 3 barpress data and save training data as .csv
-df_train['data'] = df_train['data'].apply(lambda x: x[3:] if isinstance(x, list) else x)
 ## save the file to the output folder
-output_path = 'output\\df_train.csv'
-df_train.to_csv(output_path, index=False)
+# output_path = 'output\\df_train.csv'
+# df_train.to_csv(output_path, index=False)
 
 
-## remove the first 10 elements of the data
-truncate_size = 1
+## remove the first 3 bar presses of the data
+truncate_size = 3
 chunk_size = 1
 max_press = 80
-standardize = True
+standardize = False
 df2 = manage_data(df_train, truncate_size, chunk_size, max_press, standardize)
 X,y = convert_to_features(df2, chunk_size)
 
@@ -28,6 +26,12 @@ X,y = convert_to_features(df2, chunk_size)
 
 ## Simple and naive train-test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05, random_state=42)
+
+## For each ML model: 
+## logistic regression, random forest, gradient boosting
+## 1. Train the model on the training data
+## 2. Fit the model on the test data
+## 3. get AUROC score
 predictions_log = logistic_model(y_train, X_train, X_test)
 roc_auc_log = roc_auc_score(y_test.tolist(), predictions_log)
 
@@ -41,7 +45,7 @@ roc_auc_log
 roc_auc_tree
 roc_auc_gb
 
-## K-fold cross validation
+## K-fold cross validation to get AUROC score
 n_splits = 10
 average_auc_log = cross_validate_auc(logistic_model, X, y, n_splits)
 average_auc_tree = cross_validate_auc(random_forest_model, X, y, n_splits)

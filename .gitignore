@@ -166,5 +166,5 @@ cython_debug/
 **/__pycache__
 data/*
 
-test.py
+test
 output
