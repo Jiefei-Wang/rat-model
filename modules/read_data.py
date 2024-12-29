@@ -45,7 +45,7 @@ def to_bar_press(data):
                 bar_presses.append(current_press)
             current_press = []
             hasLargeVal = False 
-    if current_press:
+    if current_press and hasLargeVal:
         bar_presses.append(current_press)
     return bar_presses
 
