@@ -8,9 +8,19 @@ from visualization import make_bar_press_plot
 
 df_train = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 
-## save the file to the output folder
-# output_path = 'output\\df_train.csv'
-# df_train.to_csv(output_path, index=False)
+##ref
+## df_train['data'] = df_train['data'].apply(lambda x: x[3:])
+
+#filtering barpress data >20
+def filter_above_20(data_list):
+    flattened_list = [item for sublist in data_list for item in sublist]
+    return [value for value in flattened_list if value > 20]
+filtered_data = df_train['data'].apply(lambda x: filter_above_20(x))
+print(filtered_data)
+
+## save to output as excel file
+# output_path = 'output\\df_train.xlsx'
+# df_train.to_xlsx(output_path, index=False)
 
 
 ## remove the first 3 bar presses of the data
