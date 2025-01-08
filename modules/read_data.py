@@ -4,6 +4,14 @@ from pathlib import Path
 from tqdm import tqdm
 
 
+def filter_peaks_in_range(barpress_data):
+    """
+    This function takes in a list of barpress data (a list of values),
+    and removes any values between 5 and 20 grams by replacing them with 0.
+    """
+    return [value if value < 5 or value > 20 else 0 for value in barpress_data]
+
+
 def extractData(file_path):
     data = []
     start_processing = False
@@ -28,8 +36,10 @@ def extractData(file_path):
 
     return data
 
+
 def lessThan5(data): 
     return [x if x >= 5 else 0 for x in data]
+
 
 def to_bar_press(data):
     bar_presses = []
@@ -38,7 +48,7 @@ def to_bar_press(data):
     for value in data:
         if value != 0:
             current_press.append(value)
-            if value >= 20: #change to 20 
+            if value >= 20:  # change to 20 
                 hasLargeVal = True 
         elif current_press:
             if hasLargeVal: 
@@ -49,11 +59,13 @@ def to_bar_press(data):
         bar_presses.append(current_press)
     return bar_presses
 
+
 def process_file(file_path):
     data = extractData(file_path)
     data = lessThan5(data)
     bar_presses = to_bar_press(data)
     return bar_presses
+
 
 def list_all_files(PATH):
     """
@@ -86,25 +98,29 @@ def read_category_data(folder):
         ## file base name with no folder
         fileName = os.path.basename(file)
         data = process_file(file)
+        
+        # Apply filter to ensure no values between 5 and 20 for each bar press vector
+        data = [filter_peaks_in_range(barpress) for barpress in data]
+        
         rat_identifier = file.split('Subject ')[1]
         ## get integer part of the rat id
         id = int(''.join(filter(str.isdigit, rat_identifier)))
         ## gender
-        gender = ''.join(filter(str.isalpha, rat_identifier))
+        sex = ''.join(filter(str.isalpha, rat_identifier))
         ## F,M to 0,1
-        gender = 1 if gender == 'M' else 0
+        sex = 1 if sex == 'M' else 0
         ## combine the data
         rat = {
             'id': id,
             'category': category,
             'file': fileName,
-            'gender': gender,
+            'sex': sex,
             'data': data}
         dt += [rat]
     
-    
     df = pd.DataFrame(dt)
     return df
+
 
 def read_data(data_root):
     """

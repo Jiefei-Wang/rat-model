@@ -4,19 +4,10 @@ from modules.read_data import read_data
 from modules.data_management import manage_data
 from modules.feature_extraction import convert_to_features
 from modules.model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
-from visualization import make_bar_press_plot
+from modules.visualization import make_bar_press_plot
 
 df_train = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 
-##ref
-## df_train['data'] = df_train['data'].apply(lambda x: x[3:])
-
-#filtering barpress data >20
-def filter_above_20(data_list):
-    flattened_list = [item for sublist in data_list for item in sublist]
-    return [value for value in flattened_list if value > 20]
-filtered_data = df_train['data'].apply(lambda x: filter_above_20(x))
-print(filtered_data)
 
 ## save to output as excel file
 # output_path = 'output\\df_train.xlsx'
