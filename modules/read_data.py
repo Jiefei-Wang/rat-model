@@ -3,14 +3,12 @@ import os
 from pathlib import Path
 from tqdm import tqdm
 
-
 def filter_peaks_in_range(barpress_data):
     """
     This function takes in a list of barpress data (a list of values),
     and removes any values between 5 and 20 grams by replacing them with 0.
     """
     return [value if value < 5 or value > 20 else 0 for value in barpress_data]
-
 
 def extractData(file_path):
     data = []
@@ -36,36 +34,37 @@ def extractData(file_path):
 
     return data
 
-
 def lessThan5(data): 
     return [x if x >= 5 else 0 for x in data]
-
 
 def to_bar_press(data):
     bar_presses = []
     current_press = []
     hasLargeVal = False
+    found_peak_in_range = False  # Track if we've encountered a value between 5 and 20
+
     for value in data:
         if value != 0:
             current_press.append(value)
-            if value >= 20:  # change to 20 
+            if value >= 20:  # Change to 20
                 hasLargeVal = True 
+            if 5 <= value <= 20:  # Track if a value between 5 and 20 is found
+                found_peak_in_range = True
         elif current_press:
-            if hasLargeVal: 
+            if hasLargeVal and found_peak_in_range:
                 bar_presses.append(current_press)
             current_press = []
-            hasLargeVal = False 
-    if current_press and hasLargeVal:
+            hasLargeVal = False
+            found_peak_in_range = False
+    if current_press and hasLargeVal and found_peak_in_range:
         bar_presses.append(current_press)
     return bar_presses
-
 
 def process_file(file_path):
     data = extractData(file_path)
     data = lessThan5(data)
     bar_presses = to_bar_press(data)
     return bar_presses
-
 
 def list_all_files(PATH):
     """
@@ -74,11 +73,10 @@ def list_all_files(PATH):
     files_path = []
     for root, subFolder, all_files in os.walk(PATH):
         for item in all_files:
-            if item.startswith("!") :
-                fileNamePath = str(os.path.join(root,item))
+            if item.startswith("!"):
+                fileNamePath = str(os.path.join(root, item))
                 files_path += [fileNamePath]
     return files_path
-
 
 def read_category_data(folder):
     """
@@ -120,7 +118,6 @@ def read_category_data(folder):
     
     df = pd.DataFrame(dt)
     return df
-
 
 def read_data(data_root):
     """
