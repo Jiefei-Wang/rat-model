@@ -4,13 +4,14 @@ from modules.read_data import read_data
 from modules.data_management import manage_data
 from modules.feature_extraction import convert_to_features
 from modules.model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
-from visualization import make_bar_press_plot
+from modules.visualization import make_bar_press_plot
 
 df_train = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 
-## save the file to the output folder
-# output_path = 'output\\df_train.csv'
-# df_train.to_csv(output_path, index=False)
+
+## save to output as excel file
+# output_path = 'output\\df_train.xlsx'
+# df_train.to_xlsx(output_path, index=False)
 
 
 ## remove the first 3 bar presses of the data
@@ -18,7 +19,11 @@ truncate_size = 3
 chunk_size = 1
 max_press = 80
 standardize = False
-df2 = manage_data(df_train, truncate_size, chunk_size, max_press, standardize)
+df2 = manage_data(df_train, 
+                  truncate_size=truncate_size,
+                  chunk_size=chunk_size, 
+                  max_press=max_press,
+                  standardize=standardize)
 X,y = convert_to_features(df2, chunk_size)
 
 

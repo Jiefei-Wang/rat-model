@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-def manage_data(df, chunk_size, truncate_size, max_press, standardize):
+def manage_data(df, truncate_size, chunk_size, max_press, standardize):
     df2 = truncate_data(df, truncate_size)
     df3 = chunk_data(df2, chunk_size) 
     df4 = cap_max_press(df3, max_press)
