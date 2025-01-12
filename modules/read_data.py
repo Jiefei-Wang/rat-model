@@ -90,15 +90,15 @@ def read_category_data(folder):
         ## get integer part of the rat id
         id = int(''.join(filter(str.isdigit, rat_identifier)))
         ## gender
-        gender = ''.join(filter(str.isalpha, rat_identifier))
+        sex = ''.join(filter(str.isalpha, rat_identifier))
         ## F,M to 0,1
-        gender = 1 if gender == 'M' else 0
+        sex = 1 if sex == 'M' else 0
         ## combine the data
         rat = {
             'id': id,
             'category': category,
             'file': fileName,
-            'gender': gender,
+            'sex': sex,
             'data': data}
         dt += [rat]
     
