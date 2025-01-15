@@ -89,7 +89,7 @@ def read_category_data(folder):
         rat_identifier = file.split('Subject ')[1]
         ## get integer part of the rat id
         id = int(''.join(filter(str.isdigit, rat_identifier)))
-        ## gender
+        ## sex
         sex = ''.join(filter(str.isalpha, rat_identifier))
         ## F,M to 0,1
         sex = 1 if sex == 'M' else 0
