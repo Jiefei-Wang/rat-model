@@ -12,7 +12,7 @@ chunk_size = 1
 max_press = 80
 standardize = False
 
-# Assuming df_train is your training dataset
+# Data Management for df_train
 df2 = manage_data(df_train, 
                   truncate_size=truncate_size,
                   chunk_size=chunk_size, 
@@ -46,7 +46,7 @@ plt.plot(top_5_valley_sharpness.index, top_5_valley_sharpness.values, marker='o'
 # Adding titles and labels for the valley sharpness plot
 plt.title('Top 5 and Bottom 5 Valley Sharpness for Bar Presses')
 plt.xlabel('Bar Press Index')
-plt.ylabel('Valley Sharpness')  # No specific units for valley sharpness, but you can add one if relevant
+plt.ylabel('Valley Sharpness')  # No specific units for valley sharpness, but can add one if relevant
 plt.legend()
 
 # Show the plot

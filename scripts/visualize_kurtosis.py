@@ -12,7 +12,7 @@ chunk_size = 1
 max_press = 80
 standardize = False
 
-# Assuming df_train is your training dataset
+# Data Management for df_train
 df2 = manage_data(df_train, 
                   truncate_size=truncate_size,
                   chunk_size=chunk_size, 
