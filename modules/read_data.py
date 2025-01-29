@@ -69,6 +69,7 @@ def filter_low_force(data):
 def to_bar_press(data):
     bar_presses = []
     mask = [False] * len(data)
+    index = []
     has_large_val = False
     found_medium_force = False  # Track if we've encountered a value between 5 and 20
 
@@ -83,32 +84,32 @@ def to_bar_press(data):
                 found_medium_force = True
         elif press_start is not None:
             if has_large_val and found_medium_force:
+                index.append((press_start, i))
                 bar_presses.append(data[press_start:i])
                 mask[press_start:i] = [True] * (i - press_start)
+                
             press_start = None
             has_large_val = False
             found_medium_force = False
     ## The last bar press
     if press_start is not None and has_large_val and found_medium_force:
+        index.append((press_start, len(data)))
         bar_presses.append(data[press_start:])
         mask[press_start:] = [True] * (len(data) - press_start)
-    return bar_presses, mask
+    return bar_presses, mask, index
 
 
-def remove_constant_values(data):
+def mask_constant_values(data):
     """
     data: 1D array-like of numeric values (Python list)
     
-    returns: a new list where constant segments are replaced with 0
+    return: True if constant values is found, False otherwise
     """
-    new_data = data[:]  # make a copy to avoid modifying the original
-    mask = [False] * len(data)
-    n = len(new_data)
-    
+    n = len(data)
     i = 0
     while i < n:
         # We'll consider a potential "constant" segment starting at index i
-        start_val = new_data[i]
+        start_val = data[i]
         
         ## If the value is 0, skip
         if start_val == 0:
@@ -118,11 +119,10 @@ def remove_constant_values(data):
         current_min = start_val
         current_max = start_val
         
-        
         j = i
         # Try to extend the segment until we exceed the threshold
         while j < n:
-            val = new_data[j]
+            val = data[j]
             
             ## If the value is 0, stop
             if val == 0:
@@ -144,24 +144,24 @@ def remove_constant_values(data):
         
         # If run is long enough, set all those elements to 0
         if run_length >= constant_run_threshold:
-            for k in range(i, j):
-                new_data[k] = 0
-                mask[k] = True
+            return True, [i, j]
         
         # Jump i past this entire segment 
         # Ideally we should increment i by 1
         # we do this for simplicity
         i = j
     
-    return new_data, mask
+    return False, None
 
 
 def process_file(file_path):
     raw_data = extractData(file_path)
     data, low_force_mask = filter_low_force(raw_data)
-    data, constant_force_mask = remove_constant_values(data)
-    bar_presses, bar_press_mask = to_bar_press(data)
-    return bar_presses, raw_data, low_force_mask, constant_force_mask, bar_press_mask
+    bar_presses, bar_press_mask, bar_press_index = to_bar_press(data)
+    constant_value_masks = [mask_constant_values(press) for press in bar_presses]
+    bar_presses_filtered = [press for press, mask in zip(bar_presses, constant_value_masks) if not mask[0]]
+    bar_presses_removed = [press for press, mask in zip(bar_presses, constant_value_masks) if mask[0]]
+    return bar_presses_filtered, bar_presses_removed, raw_data, low_force_mask, bar_press_mask, bar_press_index, constant_value_masks
 
 def list_all_files(PATH):
     """
@@ -192,7 +192,7 @@ def read_category_data(folder):
         file_path = files[i]
         ## file base name with no folder
         fileName = os.path.basename(file_path)
-        data, raw_data, low_force_mask, constant_force_mask, bar_press_mask = process_file(file_path)
+        bar_presses_filtered, bar_presses_removed, raw_data, low_force_mask, bar_press_mask, bar_press_index, constant_value_masks = process_file(file_path)
         
         rat_identifier = file_path.split('Subject ')[1]
         ## get integer part of the rat id
@@ -207,11 +207,13 @@ def read_category_data(folder):
             'category': category,
             'file': fileName,
             'sex': sex,
-            'data': data,
+            'data': bar_presses_filtered,
             'raw_data': raw_data,
             'low_force_mask': low_force_mask,
-            'constant_force_mask': constant_force_mask,
-            'bar_press_mask': bar_press_mask
+            'bar_press_mask': bar_press_mask,
+            'bar_press_index': bar_press_index,
+            'constant_value_masks': constant_value_masks,
+            'bar_presses_removed': bar_presses_removed
             }
         dt += [rat]
     

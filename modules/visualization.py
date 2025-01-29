@@ -145,7 +145,7 @@ def plot_squareish_heatmap(data, cmap='YlOrRd', title="Data", ax=None, legend = 
         plt.colorbar(im, ax=ax, label="Value")
     
     # 6) Add labels and title
-    ax.set_title(f"{title} Heatmap\n"
+    ax.set_title(f"{title}\n"
                  "Time proceeds left to right, then top to bottom")
     ax.set_xlabel("Column Index")
     ax.set_ylabel("Row Index")
