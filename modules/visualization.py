@@ -2,6 +2,7 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import math
 
 # Visualization Functions for Top 10 and Bottom 10
 def plot_top_bottom(df, feature, title):
@@ -83,6 +84,78 @@ def make_bar_press_plot(output_folder, dt, max_press_num = None):
         plt.xticks(boundaries, labels)
         plt.savefig(f'{output_folder}/{file}.png')
         plt.close()
+
+
+
+def plot_squareish_heatmap(data, cmap='YlOrRd', title="Data", ax=None, legend = True):
+    """
+    Plot a heatmap from a 1D list of values, arranging them in a grid
+    that is as close to square as possible. Allows plotting on a 
+    specified Axes object to facilitate subplot layouts.
+
+    Parameters
+    ----------
+    data : list or 1D array-like
+        The 1D data to visualize.
+    cmap : str, optional
+        Colormap to use for the heatmap (default is 'YlOrRd').
+    title : str, optional
+        Title for the heatmap. Default is 'Data'.
+    ax : matplotlib.axes.Axes, optional
+        The axes on which to plot. If None, uses the current axes (gca).
+
+    Returns
+    -------
+    im : matplotlib.image.AxesImage
+        The image object created by imshow (useful for colorbar, etc.).
+    ax : matplotlib.axes.Axes
+        The axes on which the heatmap was drawn.
+    """
+    if ax is None:
+        ax = plt.gca()  # get current active Axes
+
+    n = len(data)
+    if n == 0:
+        print("No data provided. Nothing to plot.")
+        return None, ax
+    
+    # 1) Determine the grid shape to be as square as possible:
+    nrows = int(math.floor(math.sqrt(n)))
+    ncols = int(math.ceil(n / nrows))
+    
+    # 2) Pad data if necessary so that the grid is fully rectangular
+    needed_length = nrows * ncols
+    padded_data = list(data)  # Make a copy as a list
+    if needed_length > n:
+        padded_data.extend([0] * (needed_length - n))
+    
+    # 3) Reshape into 2D (row-major order)
+    matrix = []
+    idx = 0
+    for _ in range(nrows):
+        row = padded_data[idx : idx + ncols]
+        matrix.append(row)
+        idx += ncols
+    
+    # 4) Plot the matrix as a heatmap on the provided axes
+    im = ax.imshow(matrix, aspect='auto', cmap=cmap)
+    
+    # 5) Add colorbar tied to this image
+    if legend:
+        plt.colorbar(im, ax=ax, label="Value")
+    
+    # 6) Add labels and title
+    ax.set_title(f"{title} Heatmap\n"
+                 "Time proceeds left to right, then top to bottom")
+    ax.set_xlabel("Column Index")
+    ax.set_ylabel("Row Index")
+
+    return im, ax
+
+
+
+
+
 
 
 # Example usage:

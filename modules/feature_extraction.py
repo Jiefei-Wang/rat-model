@@ -1,3 +1,8 @@
+## This must be set before loading scipy
+## Otherwise, Ctrl+C will cause crash
+import os
+os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
+
 from scipy.signal import find_peaks
 import numpy as np
 from scipy.stats import skew, kurtosis

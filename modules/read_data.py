@@ -3,12 +3,37 @@ import os
 from pathlib import Path
 from tqdm import tqdm
 
-def filter_peaks_in_range(barpress_data):
+# The force threshold that is considered a valid press
+low_force_threshold = 5
+
+# The force range (+/-) that is considered a constant force
+constant_force_threshold = 2
+# The minimum number of consecutive constant force values to be considered a constant run
+constant_run_threshold = 50
+
+
+def collapse_zeros_alike(data, threshold=1):
     """
-    This function takes in a list of barpress data (a list of values),
-    and removes any values between 5 and 20 grams by replacing them with 0.
+    Given a list of numbers, replace any consecutive zeros 
+    with a single zero in the output list.
+    
+    Example:
+        [1, 0, 0, 0, 2, 0, 0, 3] --> [1, 0, 2, 0, 3]
     """
-    return [value if value < 5 or value > 20 else 0 for value in barpress_data]
+    if not data:
+        return []
+    
+    output = []
+    for value in data:
+        if value <= threshold:
+            # Only add this zero if the last element in output isn't zero.
+            if not output or output[-1] <= threshold:
+                output.append(0)
+        else:
+            output.append(value)
+    
+    return output
+
 
 def extractData(file_path):
     data = []
@@ -32,39 +57,111 @@ def extractData(file_path):
                 numbers = parts[1:]
                 data.extend(map(float, numbers))
 
+    ## Remove excessive zeros
+    data = collapse_zeros_alike(data)
     return data
 
-def lessThan5(data): 
-    return [x if x >= 5 else 0 for x in data]
+def filter_low_force(data): 
+    new_data = [x if x >= low_force_threshold else 0 for x in data]
+    mask = [x < low_force_threshold for x in data]
+    return new_data, mask
 
 def to_bar_press(data):
     bar_presses = []
-    current_press = []
-    hasLargeVal = False
-    found_peak_in_range = False  # Track if we've encountered a value between 5 and 20
+    mask = [False] * len(data)
+    has_large_val = False
+    found_medium_force = False  # Track if we've encountered a value between 5 and 20
 
-    for value in data:
+    press_start = None
+    for i, value in enumerate(data):
         if value != 0:
-            current_press.append(value)
-            if value >= 20:  # Change to 20
-                hasLargeVal = True 
-            if 5 <= value <= 20:  # Track if a value between 5 and 20 is found
-                found_peak_in_range = True
-        elif current_press:
-            if hasLargeVal and found_peak_in_range:
-                bar_presses.append(current_press)
-            current_press = []
-            hasLargeVal = False
-            found_peak_in_range = False
-    if current_press and hasLargeVal and found_peak_in_range:
-        bar_presses.append(current_press)
-    return bar_presses
+            if press_start is None:
+                press_start = i
+            if value >= 20:
+                has_large_val = True
+            if 5 <= value <= 20:
+                found_medium_force = True
+        elif press_start is not None:
+            if has_large_val and found_medium_force:
+                bar_presses.append(data[press_start:i])
+                mask[press_start:i] = [True] * (i - press_start)
+            press_start = None
+            has_large_val = False
+            found_medium_force = False
+    ## The last bar press
+    if press_start is not None and has_large_val and found_medium_force:
+        bar_presses.append(data[press_start:])
+        mask[press_start:] = [True] * (len(data) - press_start)
+    return bar_presses, mask
+
+
+def remove_constant_values(data):
+    """
+    data: 1D array-like of numeric values (Python list)
+    
+    returns: a new list where constant segments are replaced with 0
+    """
+    new_data = data[:]  # make a copy to avoid modifying the original
+    mask = [False] * len(data)
+    n = len(new_data)
+    
+    i = 0
+    while i < n:
+        # We'll consider a potential "constant" segment starting at index i
+        start_val = new_data[i]
+        
+        ## If the value is 0, skip
+        if start_val == 0:
+            i += 1
+            continue
+        
+        current_min = start_val
+        current_max = start_val
+        
+        
+        j = i
+        # Try to extend the segment until we exceed the threshold
+        while j < n:
+            val = new_data[j]
+            
+            ## If the value is 0, stop
+            if val == 0:
+                break
+
+            potential_min = min(current_min, val)
+            potential_max = max(current_max, val)
+            
+            if (potential_max - potential_min) <= 2 * constant_force_threshold:
+                # Update current_min and current_max because we can include val
+                current_min, current_max = potential_min, potential_max
+                j += 1
+            else:
+                # We exceeded the allowed variation, so break
+                break
+        
+        # Now, j is just past the end of the potential constant segment
+        run_length = j - i
+        
+        # If run is long enough, set all those elements to 0
+        if run_length >= constant_run_threshold:
+            for k in range(i, j):
+                new_data[k] = 0
+                mask[k] = True
+        
+        # Jump i past this entire segment 
+        # Ideally we should increment i by 1
+        # we do this for simplicity
+        i = j
+    
+    return new_data, mask
+
 
 def process_file(file_path):
-    data = extractData(file_path)
-    data = lessThan5(data)
-    bar_presses = to_bar_press(data)
-    return bar_presses
+    raw_data = extractData(file_path)
+    data, low_force_mask = filter_low_force(raw_data)
+    data, constant_force_mask = remove_constant_values(data)
+    bar_presses, bar_press_mask = to_bar_press(data)
+    return bar_presses, raw_data, low_force_mask, constant_force_mask, bar_press_mask
 
 def list_all_files(PATH):
     """
@@ -92,15 +189,12 @@ def read_category_data(folder):
     dt = []
     ## progress bar
     for i in tqdm(range(len(files))):
-        file = files[i]
+        file_path = files[i]
         ## file base name with no folder
-        fileName = os.path.basename(file)
-        data = process_file(file)
+        fileName = os.path.basename(file_path)
+        data, raw_data, low_force_mask, constant_force_mask, bar_press_mask = process_file(file_path)
         
-        # Apply filter to ensure no values between 5 and 20 for each bar press vector
-        data = [filter_peaks_in_range(barpress) for barpress in data]
-        
-        rat_identifier = file.split('Subject ')[1]
+        rat_identifier = file_path.split('Subject ')[1]
         ## get integer part of the rat id
         id = int(''.join(filter(str.isdigit, rat_identifier)))
         ## gender
@@ -113,12 +207,18 @@ def read_category_data(folder):
             'category': category,
             'file': fileName,
             'sex': sex,
-            'data': data}
+            'data': data,
+            'raw_data': raw_data,
+            'low_force_mask': low_force_mask,
+            'constant_force_mask': constant_force_mask,
+            'bar_press_mask': bar_press_mask
+            }
         dt += [rat]
     
     df = pd.DataFrame(dt)
     return df
 
+# data_root = 'data/01 Sucrose FR1 vs EXT 8_2024'
 def read_data(data_root):
     """
     Read data from the data root folder and return a data frame
