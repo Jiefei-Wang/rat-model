@@ -1,7 +1,41 @@
 import os
 import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+# Visualization Functions for Top 10 and Bottom 10
+def plot_top_bottom(df, feature, title):
+    """Plot top 10 and bottom 10 for a given feature."""
+    # Get top 10 and bottom 10 for the feature
+    top_10 = df.nlargest(10, feature)
+    bottom_10 = df.nsmallest(10, feature)
+
+    # Combine the top and bottom data for visualization
+    top_bottom = pd.concat([top_10, bottom_10])
+
+    # Create bar plot for top 10 and bottom 10 entries
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=top_bottom.index, y=top_bottom[feature], palette="viridis")
+    plt.title(f"{title} (Top 10 and Bottom 10)", fontsize=16)
+    plt.xlabel('Index', fontsize=14)
+    plt.ylabel(feature, fontsize=14)
+    plt.xticks(rotation=90)
+    plt.show()
 
 
+def generate_visualizations(df):
+    """Generate bar graphs for top 10 and bottom 10 entries of duration, max_force, and num_of_peaks."""
+    # Plot for 'duration'
+    plot_top_bottom(df, 'duration', 'Duration')
+
+    # Plot for 'max_force'
+    plot_top_bottom(df, 'max_force', 'Max Force')
+
+    # Plot for 'num_of_peaks'
+    plot_top_bottom(df, 'num_of_peaks', 'Number of Peaks')
+
+
+# Boxplot Functions
 def make_boxplot(image_dir, df, prob_cols, model_titles, by_col):
     os.makedirs(image_dir, exist_ok=True)
     rats = df['id'].unique()
@@ -14,7 +48,6 @@ def make_boxplot(image_dir, df, prob_cols, model_titles, by_col):
         # Save the figure
         plt.savefig(f"{image_dir}/rat_{rat}.png")
         plt.close()
-    
 def make_single_boxplot(df, prob_cols, model_titles, by_col):
     # Group by 'file' and create boxplots for each group
     fig, ax = plt.subplots(1, len(prob_cols), figsize=(15, 5))
@@ -29,7 +62,7 @@ def make_single_boxplot(df, prob_cols, model_titles, by_col):
     plt.tight_layout(rect=[0, 0, 1, 0.96])
 
 
-
+# Bar Press Plot Functions
 def make_bar_press_plot(output_folder, dt, max_press_num = None):
     os.makedirs(output_folder, exist_ok=True)
     files = dt['file'].unique()
@@ -51,3 +84,19 @@ def make_bar_press_plot(output_folder, dt, max_press_num = None):
         plt.savefig(f'{output_folder}/{file}.png')
         plt.close()
 
+
+# Example usage:
+# Assuming `df` is your DataFrame containing the data column with the bar press force data as lists
+# and `df_features` is the DataFrame with calculated features like 'duration', 'max_force', 'num_of_peaks'
+
+# Convert the data to features (duration, max_force, num_of_peaks, max_duration)
+# df_features = convert_to_features(df, chunk_size=1)
+
+# Generate the visualizations for the top 10 and bottom 10 of the selected features
+# generate_visualizations(df_features)
+
+# Boxplot example (save boxplots for each rat to a folder)
+# make_boxplot("boxplots_output", df, prob_cols=['duration', 'max_force', 'num_of_peaks'], model_titles=["Duration", "Max Force", "Num of Peaks"], by_col='category')
+
+# Bar press plot example (save bar press plots to a folder)
+# make_bar_press_plot("barpress_plots", df, max_press_num=100)
