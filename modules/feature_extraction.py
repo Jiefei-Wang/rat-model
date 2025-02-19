@@ -1,11 +1,14 @@
+## This must be set before loading scipy
+## Otherwise, Ctrl+C will cause crash
 import os
-import numpy as np
-from scipy.signal import find_peaks
-from scipy.stats import skew, kurtosis
-
 os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
 
-def convert_to_features(df, chunk_size):
+from scipy.signal import find_peaks
+import numpy as np
+from scipy.stats import skew, kurtosis
+
+## features: existing (duration, max_force, num_of_peaks, max_duration) + skewness, kurtosis, sharpness
+def convert_to_features(df, chunk_size, peak_distance=3):
     df3 = df.copy()
     
     # Extract features for each bar press (duration, max force, num of peaks, skewness, kurtosis, force variation rate, valley sharpness, peak duration)
@@ -17,9 +20,10 @@ def convert_to_features(df, chunk_size):
     df3['force_variation_rate'] = calculate_force_variation_rate(df3['data'])  # Force variation rate for each bar press
     df3['valley_sharpness'] = calculate_valley_sharpness(df3['data'])  # Valley sharpness for each bar press
     df3['peak_duration'] = calculate_peak_duration(df3['data'])  # Peak duration for each bar press
-    
-    # If chunk_size == 1, we only need the first value for each list (single bar press)
+
+    ## for a chunk of size 1, flattening the list
     if chunk_size == 1:
+        # Flatten all features for chunk_size=1
         df3['total_press_duration'] = df3['total_press_duration'].apply(lambda x: x[0])
         df3['max_force'] = df3['max_force'].apply(lambda x: x[0])
         df3['num_of_peaks'] = df3['num_of_peaks'].apply(lambda x: x[0])
@@ -28,8 +32,7 @@ def convert_to_features(df, chunk_size):
         df3['force_variation_rate'] = df3['force_variation_rate'].apply(lambda x: x[0])
         df3['valley_sharpness'] = df3['valley_sharpness'].apply(lambda x: x[0])
         df3['peak_duration'] = df3['peak_duration'].apply(lambda x: x[0])
-        #also calculate for the shortest peak duration, how are we defining the peak duration?
-        
+
         features = ['sex', 'total_press_duration', 'max_force', 'num_of_peaks', 'skewness', 'kurtosis', 'force_variation_rate', 'valley_sharpness', 'peak_duration']
     else:
         # Calculate percentiles for each feature across all bar presses
