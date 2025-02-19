@@ -74,7 +74,29 @@ def convert_to_features(df, chunk_size, peak_distance=3):
     y = df3['category']
     return X, y
 
-# Function to calculate total press duration for each bar press
+
+# Function to calculate valley sharpness
+def calculate_valley_sharpness(x):
+    return x.apply(lambda presses: [calculate_valley_sharpness_for_press(press) for press in presses])  # Valley sharpness for each bar press
+
+# Function to calculate valley sharpness for a single bar press
+def calculate_valley_sharpness_for_press(press):
+    inverted_press = -np.array(press)  # Invert the signal to detect valleys
+    valleys, _ = find_peaks(inverted_press)  # Find valleys (peaks in the inverted signal)
+    
+    sharpness = []
+    for valley in valleys:
+        # Calculate the slope before and after the valley
+        if valley > 0 and valley < len(press) - 1:
+            left_slope = press[valley] - press[valley - 1]
+            right_slope = press[valley] - press[valley + 1]
+            sharpness.append(abs(left_slope) + abs(right_slope))
+    
+    # Return the average sharpness of the detected valleys (or 0 if no valleys detected)
+    return np.mean(sharpness) if sharpness else 0
+
+
+# Function to calculate the duration of each bar press
 def calculate_total_press_duration(x): 
     return x.apply(lambda presses: [len(press) for press in presses])  # Duration of each bar press
 
@@ -159,3 +181,4 @@ def add_percentile_columns(df, column, percentiles):
     for p in percentiles:
         df[f'{column}_{p}'] = df[column].apply(lambda x: np.percentile(x, p))
     return df
+
