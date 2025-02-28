@@ -2,7 +2,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from modules.read_data import read_data
 from modules.data_management import manage_data
-from modules.feature_extraction import convert_to_features
+from modules.feature_extraction_v2 import convert_to_features
 from modules.model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
 from modules.visualization import make_bar_press_plot
 

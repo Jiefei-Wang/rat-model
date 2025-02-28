@@ -1,10 +1,4 @@
 import numpy as np
-## This must be set before loading scipy
-## Otherwise, Ctrl+C will cause crash
-import os
-os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
-
-import numpy as np
 from scipy.signal import find_peaks
 from scipy.stats import skew, kurtosis
 
