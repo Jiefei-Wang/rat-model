@@ -46,10 +46,11 @@ for i in range(4):
     file = rat['file']
     raw_data = rat['raw_data']
     low_force_mask = rat['low_force_mask']
-    bar_press_mask = rat['bar_press_mask']
-    bar_press_index = rat['bar_press_index']
+    raw_bar_presses = rat['raw_bar_press']
+    bar_press_mask = rat['raw_bar_press_mask']
+    bar_press_index = rat['raw_bar_press_index']
     constant_value_masks = rat['constant_value_masks']
-    bar_presses_removed = rat['bar_presses_removed']
+    bar_presses_removed = [press for press, mask in zip(raw_bar_presses, constant_value_masks) if mask[0]]
     
     bar_press_removed_mask = [False] * len(raw_data)
     for j, value_mask in zip(bar_press_index, constant_value_masks):
@@ -96,7 +97,6 @@ for i in range(4):
         plt.tight_layout()
         plt.savefig(f'output/barpress_raw/{file}/bad_presses/{count}.png', dpi=300)
         plt.close()
-    
     
     
     

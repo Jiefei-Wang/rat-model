@@ -163,7 +163,7 @@ def plot_squareish_heatmap(data, cmap='YlOrRd', title="Data", ax=None, legend = 
 # and `df_features` is the DataFrame with calculated features like 'duration', 'max_force', 'num_of_peaks'
 
 # Convert the data to features (duration, max_force, num_of_peaks, max_duration)
-# df_features = convert_to_features(df, chunk_size=1)
+# df_features = convert_to_features(df)
 
 # Generate the visualizations for the top 10 and bottom 10 of the selected features
 # generate_visualizations(df_features)

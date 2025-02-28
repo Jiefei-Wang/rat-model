@@ -160,8 +160,8 @@ def process_file(file_path):
     bar_presses, bar_press_mask, bar_press_index = to_bar_press(data)
     constant_value_masks = [mask_constant_values(press) for press in bar_presses]
     bar_presses_filtered = [press for press, mask in zip(bar_presses, constant_value_masks) if not mask[0]]
-    bar_presses_removed = [press for press, mask in zip(bar_presses, constant_value_masks) if mask[0]]
-    return bar_presses_filtered, bar_presses_removed, raw_data, low_force_mask, bar_press_mask, bar_press_index, constant_value_masks
+    bar_presses_filtered_index = [index for index, mask in zip(bar_press_index, constant_value_masks) if not mask[0]]
+    return bar_presses_filtered, bar_presses_filtered_index, raw_data, low_force_mask, bar_presses, bar_press_mask, bar_press_index, constant_value_masks
 
 def list_all_files(PATH):
     """
@@ -192,7 +192,7 @@ def read_category_data(folder):
         file_path = files[i]
         ## file base name with no folder
         fileName = os.path.basename(file_path)
-        bar_presses_filtered, bar_presses_removed, raw_data, low_force_mask, bar_press_mask, bar_press_index, constant_value_masks = process_file(file_path)
+        bar_presses_filtered, bar_presses_filtered_index, raw_data, low_force_mask, bar_presses, bar_press_mask, bar_press_index, constant_value_masks = process_file(file_path)
         
         rat_identifier = file_path.split('Subject ')[1]
         ## get integer part of the rat id
@@ -208,12 +208,13 @@ def read_category_data(folder):
             'file': fileName,
             'sex': sex,
             'data': bar_presses_filtered,
+            'data_index': bar_presses_filtered_index,
             'raw_data': raw_data,
             'low_force_mask': low_force_mask,
-            'bar_press_mask': bar_press_mask,
-            'bar_press_index': bar_press_index,
-            'constant_value_masks': constant_value_masks,
-            'bar_presses_removed': bar_presses_removed
+            'raw_bar_press': bar_presses,
+            'raw_bar_press_mask': bar_press_mask,
+            'raw_bar_press_index': bar_press_index,
+            'constant_value_masks': constant_value_masks
             }
         dt += [rat]
     

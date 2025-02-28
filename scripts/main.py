@@ -9,11 +9,6 @@ from modules.visualization import make_bar_press_plot
 df_train = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 
 
-
-df_train['data'] = df_train['data'].apply(lambda x: x[3:] if isinstance(x, list) else x)
-output_path = 'output\\df_train.xlsx'
-df_train.to_excel(output_path, index=False)
-
 ## save to output as excel file
 # output_path = 'output\\df_train.xlsx'
 # df_train.to_xlsx(output_path, index=False)
@@ -23,15 +18,14 @@ df_train.to_excel(output_path, index=False)
 ## remove the first 3 bar presses of the data
 truncate_size = 3
 chunk_size = 1
-max_press = 80
+max_press = 1000
 standardize = False
 df2 = manage_data(df_train, 
                   truncate_size=truncate_size,
                   chunk_size=chunk_size, 
                   max_press=max_press,
                   standardize=standardize)
-X,y = convert_to_features(df2, chunk_size)
-
+X,y = convert_to_features(df2) ## TODO:slow
 
 
 

@@ -21,7 +21,7 @@ chunk_size_list = range(1, 21)
 for chunk_size in chunk_size_list:
     print(f'Chunk size: {chunk_size}')
     df3 = chunk_data(df2, chunk_size) 
-    X,y = convert_to_features(df3, chunk_size)
+    X,y = convert_to_features(df3)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     average_auc_log = cross_validate_auc(logistic_model, X, y, n_splits)
     average_auc_tree = cross_validate_auc(random_forest_model, X, y, n_splits)

@@ -42,7 +42,8 @@ def chunk_data(df, chunk_size):
     
     df = df.copy()
     df['data'] = df['data'].apply(lambda x: chunk_data_fun(x, chunk_size))
-    df = df.explode('data').reset_index(drop=True)
+    df['data_index'] = df['data_index'].apply(lambda x: chunk_data_fun(x, chunk_size))
+    df = df.explode(['data', 'data_index']).reset_index(drop=True)
     return df
 
 
@@ -66,4 +67,5 @@ def chunk_data_fun(list_of_list, chunk_size):
 def truncate_data(df, length):
     df = df.copy()
     df['data'] = df['data'].apply(lambda x: x[length:])
+    df['data_index'] = df['data_index'].apply(lambda x: x[length:])
     return df

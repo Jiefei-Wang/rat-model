@@ -125,11 +125,7 @@ def add_percentile_columns(df, array_column, percentiles):
 
 
 
-
-
-## features: existing (duration, max_force, num_of_peaks, max_duration) + skewness, kurtosis, sharpness
-def convert_to_features(df, chunk_size):
-    ## name and function mapping    
+def get_feature_list():
     feature_list = {
         "total_press_duration": {"func": calculate_total_press_duration, "params": {}},
         "max_force": {"func": calculate_max_force, "params": {}},
@@ -141,6 +137,14 @@ def convert_to_features(df, chunk_size):
         "valley_sharpness": {"func": calculate_valley_sharpness, "params": {}},
         "peak_sharpness": {"func": calculate_peak_sharpness, "params": {}}
     }
+    return feature_list
+
+## features: existing (duration, max_force, num_of_peaks, max_duration) + skewness, kurtosis, sharpness
+def convert_to_features(df):
+    chunk_size = len(df['data'][0]) 
+    
+    ## name and function mapping    
+    feature_list = get_feature_list()
 
     df3 = df.copy()
     
