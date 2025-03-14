@@ -14,8 +14,6 @@ output_path = 'output/features'
 # Load the dataset
 df_train = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 
-
-
 ## clean the data
 truncate_size = 3
 chunk_size = 1
@@ -33,16 +31,14 @@ df2.columns
 #        'raw_bar_press_index', 'constant_value_masks']
 
 ## turn data into features
-X,y = convert_to_features(df2)
+X, y = convert_to_features(df2)
 
-## combind df2 and X
+## combine df2 and X
 df3 = pd.concat([df2, X], axis=1)
 
 # Set padding values (number of samples before and after bar press event)
 padding_before = 50
 padding_after = 50
-
-
 
 df3.columns
 # ['id', 'category', 'file', 'sex', 'data', 'data_index', 'raw_data',
@@ -50,9 +46,9 @@ df3.columns
 #        'raw_bar_press_index', 'constant_value_masks', 'sex',
 #        'total_press_duration', 'max_force', 'num_of_peaks',
 #        'max_peak_duration', 'skewness', 'kurtosis', 'force_variation_rate',
-#        'valley_sharpness', 'peak_sharpness']
+#        'valley_sharpness', 'peak_sharpness', 'avg_first_5', 'avg_last_5']
 
-# Sort the features by each metric
+# Sort the features by each metric (including the new ones)
 features = {
     "Total Press Duration": df3.sort_values(by="total_press_duration"),
     "Max Force": df3.sort_values(by="max_force"),
@@ -63,11 +59,12 @@ features = {
     "Valley Sharpness": df3.sort_values(by="valley_sharpness"),
     "Max Peak Duration": df3.sort_values(by="max_peak_duration"),
     "Peak Sharpness": df3.sort_values(by="peak_sharpness"),
+    "Average First 5": df3.sort_values(by="avg_first_5"),  # Added avg_first_5
+    "Average Last 5": df3.sort_values(by="avg_last_5")    # Added avg_last_5
 }
 
 # Function to save plots with extra padding
 def save_plot_with_padding(output_dir, rank, row, feature_name, title):
-    
     index = row['index']
     subject = row['id']
     raw_data = row['raw_data']
@@ -80,11 +77,9 @@ def save_plot_with_padding(output_dir, rank, row, feature_name, title):
     
     press_start_index = start - start_with_padding
     press_end_index = end - start_with_padding 
-    
 
     # Get the data with padding
     y_with_padding = raw_data[start_with_padding:end_with_padding]
-    
     
     plt.figure(figsize=(10, 6))
     plt.plot(y_with_padding)
@@ -100,32 +95,28 @@ def save_plot_with_padding(output_dir, rank, row, feature_name, title):
     plt.savefig(save_path)
     plt.close()
 
-
 def save_plots(df, feature_name, title, output_dir):
     ## delete the folder if exist
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir, exist_ok=True)
     df = df.reset_index(drop=False)
-    for idx  in range(len(df)):
+    for idx in range(len(df)):
         row = df.iloc[idx]
         save_plot_with_padding(output_dir, idx, row, feature_name, title)
 
-
 output_path_base = 'output/features'
+
 # Generate and save plots for the top and bottom 10 of each feature
 for feature_name, sorted_data in features.items():
     print(f"Generating plots for {feature_name}...")
     top_10 = sorted_data.iloc[-10:]
     bottom_10 = sorted_data.iloc[:10]
     
-    top10_dir = os.path.join(output_path_base,feature_name, "Top10")
-    bottom10_dir = os.path.join(output_path_base,feature_name, "Bottom10")
+    top10_dir = os.path.join(output_path_base, feature_name, "Top10")
+    bottom10_dir = os.path.join(output_path_base, feature_name, "Bottom10")
     
     save_plots(top_10, feature_name, "Top10", top10_dir)
     save_plots(bottom_10, feature_name, "Bottom10", bottom10_dir)
 
-
 print("Plots have been saved successfully.")
-
-
