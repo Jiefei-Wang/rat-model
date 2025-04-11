@@ -168,3 +168,4 @@ data/*
 
 test
 output
+scripts/torch_test.py
