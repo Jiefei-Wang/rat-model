@@ -5,6 +5,7 @@ from modules.data_management import manage_data
 from modules.feature_extraction import convert_to_features
 from modules.model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
 from modules.visualization import make_bar_press_plot
+import pandas as pd
 
 df_train = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 
@@ -27,10 +28,18 @@ df2 = manage_data(df_train,
                   standardize=standardize)
 X,y = convert_to_features(df2) ## TODO:slow
 
+##display all feature names
+pd.set_option('display.max_columns', None)
+print(X)
 
+#split the row indices of the data into training and test sets
+row_train, row_test = train_test_split(df2.index, test_size=0.05, random_state=42)
+df_train = df2.loc[row_train].reset_index(drop=True)
+df_test = df2.loc[row_test].reset_index(drop=True)
 
-## Simple and naive train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05, random_state=42)
+X_train, y_train = convert_to_features(df_train)
+X_test, y_test = convert_to_features(df_test)
+
 
 ## For each ML model: 
 ## logistic regression, random forest, gradient boosting
