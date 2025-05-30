@@ -168,3 +168,6 @@ data/*
 
 test
 output
+wandb
+
+

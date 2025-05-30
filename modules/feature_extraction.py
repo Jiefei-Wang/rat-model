@@ -6,8 +6,13 @@ os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
 import numpy as np
 from scipy.signal import find_peaks
 from scipy.stats import skew, kurtosis
+import pandas as pd
 
+# Increase the number of displayed columns
+pd.set_option('display.max_columns', None)
 
+# Increase the width of the display
+pd.set_option('display.width', None)
 
 # Function to calculate valley sharpness
 def calculate_valley_sharpness(x):
@@ -86,20 +91,6 @@ def calculate_peak_sharpness_for_press(press):
             sharpness.append(abs(left_slope) + abs(right_slope))  
     return np.mean(sharpness) if sharpness else 0  
 
-# Function to calculate valley sharpness of each bar press
-def calculate_valley_sharpness(x):
-    return x.apply(lambda presses: [calculate_valley_sharpness_for_press(press) for press in presses])
-
-def calculate_valley_sharpness_for_press(press):
-    valleys, _ = find_peaks(-np.array(press))  # Detect valleys (minima) in the press force signal
-    sharpness = []
-    for valley in valleys:
-        if valley > 0 and valley < len(press) - 1:
-            left_slope = press[valley] - press[valley - 1]  # Slope before the valley
-            right_slope = press[valley] - press[valley + 1]  # Slope after the valley
-            sharpness.append(abs(left_slope) + abs(right_slope))  # Sum of absolute slopes to define sharpness
-    return np.mean(sharpness) if sharpness else 0  # Return average sharpness of valleys, 0 if no valleys found
-
 # Function to calculate skewness of each bar press
 def calculate_skewness(x):
     return x.apply(lambda presses: [skew(press) for press in presses])  # Skewness for each bar press
@@ -124,7 +115,15 @@ def add_percentile_columns(df, array_column, percentiles):
     return df
 
 
+# Functions to calculate the average of the first and last 5 values
+def calculate_avg_first_5(x):
+    return x.apply(lambda presses: [np.mean(press[:5]) if len(press) >= 5 else np.mean(press) for press in presses])  # Average of first 5 values
 
+def calculate_avg_last_5(x):
+    return x.apply(lambda presses: [np.mean(press[-5:]) if len(press) >= 5 else np.mean(press) for press in presses])  # Average of last 5 values
+
+
+# Mapping of features and their corresponding functions
 def get_feature_list():
     feature_list = {
         "total_press_duration": {"func": calculate_total_press_duration, "params": {}},
@@ -135,11 +134,13 @@ def get_feature_list():
         "kurtosis": {"func": calculate_kurtosis, "params": {}},
         "force_variation_rate": {"func": calculate_force_variation_rate, "params": {}},
         "valley_sharpness": {"func": calculate_valley_sharpness, "params": {}},
-        "peak_sharpness": {"func": calculate_peak_sharpness, "params": {}}
+        "peak_sharpness": {"func": calculate_peak_sharpness, "params": {}},
+        "avg_first_5": {"func": calculate_avg_first_5, "params": {}},  # Added avg_first_5
+        "avg_last_5": {"func": calculate_avg_last_5, "params": {}}    # Added avg_last_5
     }
     return feature_list
 
-## features: existing (duration, max_force, num_of_peaks, max_duration) + skewness, kurtosis, sharpness
+# Feature extraction function
 def convert_to_features(df):
     chunk_size = len(df['data'][0]) 
     
@@ -152,22 +153,20 @@ def convert_to_features(df):
     for feature_name, feature in feature_list.items():
         df3[feature_name] = feature["func"](df3['data'], **feature["params"])
         
-    
     if chunk_size == 1:
-    # If chunk_size == 1, we only need the first value for each list (single bar press)
+        # If chunk_size == 1, we only need the first value for each list (single bar press)
         for feature_name in feature_list.keys():
             df3[feature_name] = df3[feature_name].apply(lambda x: x[0])
         
         transformed_feature = [feature_name for feature_name in feature_list.keys()]
     else:
-    # If chunk_size > 1, we need to turn the lists into features
+        # If chunk_size > 1, we need to turn the lists into features
         for feature_name in feature_list.keys():
             df3 = add_percentile_columns(df3, feature_name, [25, 50, 75])
             df3[f'range_{feature_name}'] = abs(df3[f'{feature_name}_25'] - df3[f'{feature_name}_75'])
         
         transformed_feature = [f'{feature_name}_{p}' for feature_name in feature_list.keys() for p in [25, 50, 75]] + [f'range_{feature_name}' for feature_name in feature_list.keys()]
         
-    
     features = ['sex'] + transformed_feature
         
     # Select features and the target
