@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-def save_model(model, epoch, valid_loss, output_dir):
+def save_model(model, epoch, valid_loss, output_dir)
     # Save the model
     model_path = os.path.join(output_dir, f"best_model_epoch_{epoch+1}_loss_{valid_loss:.4f}.pth")
     torch.save(model.state_dict(), model_path)

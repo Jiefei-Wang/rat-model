@@ -5,7 +5,7 @@ from modules.read_data import read_data
 
 output_dir = "output/gru"
 df_raw = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
-model = GRUModel(input_size=1, hidden_size=32, num_layers=3)
+model = GRUModel(input_size=1, hidden_size=32, num_layers=2)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #Trains the model, saves the model, and logs the training process to Weights & Biases

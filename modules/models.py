@@ -15,7 +15,6 @@ class GRUModel(nn.Module):
         self.name = f"GRU_{input_size}_{hidden_size}_{num_layers}"
 
     def forward(self, x, lengths):
-        x = x.unsqueeze(-1)  # (batch, seq_len, input_size=1)
         packed_input = nn.utils.rnn.pack_padded_sequence(
             x, lengths.cpu(), batch_first=True, enforce_sorted=False)
         _, hidden = self.gru(packed_input)
