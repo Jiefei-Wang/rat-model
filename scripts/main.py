@@ -28,9 +28,14 @@ df2 = manage_data(df_train,
 X,y = convert_to_features(df2) ## TODO:slow
 
 
+#split the row indices of the data into training and test sets
+row_train, row_test = train_test_split(df2.index, test_size=0.05, random_state=42)
+df_train = df2.loc[row_train].reset_index(drop=True)
+df_test = df2.loc[row_test].reset_index(drop=True)
 
-## Simple and naive train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05, random_state=42)
+X_train, y_train = convert_to_features(df_train)
+X_test, y_test = convert_to_features(df_test)
+
 
 ## For each ML model: 
 ## logistic regression, random forest, gradient boosting
