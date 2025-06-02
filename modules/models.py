@@ -12,6 +12,7 @@ class GRUModel(nn.Module):
                           num_layers=num_layers,
                           batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
+        self.name = f"GRU_{input_size}_{hidden_size}_{num_layers}"
 
     def forward(self, x, lengths):
         x = x.unsqueeze(-1)  # (batch, seq_len, input_size=1)

@@ -1,5 +1,5 @@
 import torch
-from modules.train import big_train_loop
+from modules.nn_train import big_train_loop
 from modules.models import RNNModel
 from modules.read_data import read_data
 
