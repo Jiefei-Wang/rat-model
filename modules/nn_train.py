@@ -6,6 +6,7 @@ from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix, Confusio
 
 import datetime
 import pandas as pd
+from tqdm import tqdm
 
 def dataframe_to_tensors(dataframe, device=None):
     """
@@ -109,7 +110,8 @@ def big_train_loop(model,
     train_auc_list = []
     valid_auc_list = []
     
-    for epoch in range(epochs):
+    for epoch in tqdm(range(epochs), desc="Training", unit="epoch"):
+        # Update progress bar with current losses after each epoch
         # Training
         model.train()
         optimizer.zero_grad()
@@ -154,7 +156,8 @@ def big_train_loop(model,
                     "valid_auc": valid_auc,
                     "epoch": epoch + 1
                 })
-            print(f"Epoch [{epoch+1}/{epochs}], Train Loss: {train_loss:.4f}, Valid Loss: {valid_loss:.4f}, Train AUC: {train_auc:.4f}, Valid AUC: {valid_auc:.4f} {'(Saved)' if saved else ''}")
+                
+            tqdm.write(f"T Loss: {train_loss:.4f}, V Loss: {valid_loss:.4f}, T AUC: {train_auc:.4f}, V AUC: {valid_auc:.4f} {'(Saved)' if saved else ''}")
 
     
     # Save final model
