@@ -3,10 +3,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-def save_model(model, epoch, valid_loss, output_dir):
-    # Save the model
-    model_path = os.path.join(output_dir, f"best_model_epoch_{epoch}.pth")
-    torch.save(model.state_dict(), model_path)
 
 def plot_learning_curve(train_losses, valid_losses, output_dir):
     plt.figure(figsize=(10, 6))

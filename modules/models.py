@@ -12,7 +12,8 @@ class GRUModel(nn.Module):
                           num_layers=num_layers,
                           batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
-        self.name = f"GRU_{input_size}_{hidden_size}_{num_layers}"
+        self.name = f"GRU"
+        self.params = f"{input_size}_{hidden_size}_{num_layers}"
 
     def forward(self, x, lengths):
         packed_input = nn.utils.rnn.pack_padded_sequence(
@@ -32,7 +33,8 @@ class LSTMModel(nn.Module):
                             num_layers=num_layers,
                             batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
-        self.name = f"LSTM_{input_size}_{hidden_size}_{num_layers}"
+        self.name = f"LSTM"
+        self.params = f"{input_size}_{hidden_size}_{num_layers}"
 
     def forward(self, x, lengths):
         packed_input = nn.utils.rnn.pack_padded_sequence(
@@ -50,7 +52,8 @@ class RNNModel(nn.Module):
         self.num_layers = num_layers
         self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
-        self.name = f"RNN_{input_size}_{hidden_size}_{num_layers}"
+        self.name = f"RNN"
+        self.params = f"{input_size}_{hidden_size}_{num_layers}"
 
     def forward(self, x, lengths):
         packed_input = nn.utils.rnn.pack_padded_sequence(x, lengths.cpu(), batch_first=True, enforce_sorted=False)

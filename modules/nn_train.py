@@ -1,12 +1,9 @@
 import torch
 import os
 import wandb
-import matplotlib.pyplot as plt
-import pickle
 import torch.nn.utils.rnn as rnn_utils
 from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix, ConfusionMatrixDisplay
 
-from modules.utils import save_model, plot_learning_curve
 import datetime
 import pandas as pd
 
@@ -66,8 +63,9 @@ def big_train_loop(model,
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     model_name = model.name
+    model_params = model.params
     
-    output_dir = os.path.join(output_base, model_name) 
+    output_dir = os.path.join(output_base, f"{model_name}_{model_params}") 
     
     
     # Convert all data to tensors and load directly to GPU
@@ -88,7 +86,7 @@ def big_train_loop(model,
     wandb.finish()
     wandb.init(
         project=f"rat-frustration-{model_name}",
-        name=f"{run_datetime}",
+        name=f"{model.params}_{run_datetime}",
         config={
             "model": model_name,
             "input_size": 1,
@@ -131,7 +129,8 @@ def big_train_loop(model,
         saved = False
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
-            save_model(model, epoch, best_valid_loss, output_dir)
+            model_path = os.path.join(output_dir, "best.pth")
+            torch.save(model.state_dict(), model_path)
             saved = True
         
         # Log training and validation metrics every 10 epochs
@@ -159,7 +158,7 @@ def big_train_loop(model,
 
     
     # Save final model
-    final_model_path = os.path.join(output_dir, f"{model_name}_final.pth")
+    final_model_path = os.path.join(output_dir, f"final.pth")
     torch.save(model.state_dict(), final_model_path)
     
     
@@ -170,7 +169,11 @@ def big_train_loop(model,
         test_probs = torch.softmax(test_logits, dim=1)[:, 1]
         
     test_auc = roc_auc_score(test_y_cpu, test_probs.cpu().numpy())
-    wandb.log({"Test AUC": test_auc})
+    wandb.log({
+        "Test AUC": test_auc,
+        "Best Valid Loss": best_valid_loss,
+        "Best Valid AUC": max(valid_auc_list)
+        })
 
     ## making a dataframe for loss, auc
     train_info = pd.DataFrame({
