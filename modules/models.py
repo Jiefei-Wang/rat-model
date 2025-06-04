@@ -21,7 +21,6 @@ class GRUModel(nn.Module):
         out = self.fc(hidden[-1])
         return out
 
-
 # LSTM Model
 class LSTMModel(nn.Module):
     def __init__(self, input_size=1, hidden_size=32, num_layers=3, num_classes=2):
@@ -33,9 +32,9 @@ class LSTMModel(nn.Module):
                             num_layers=num_layers,
                             batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
+        self.name = f"LSTM_{input_size}_{hidden_size}_{num_layers}"
 
     def forward(self, x, lengths):
-        x = x.unsqueeze(-1)  # (batch, seq_len, input_size=1)
         packed_input = nn.utils.rnn.pack_padded_sequence(
             x, lengths.cpu(), batch_first=True, enforce_sorted=False)
         _, (hidden, _) = self.lstm(packed_input)
@@ -51,9 +50,9 @@ class RNNModel(nn.Module):
         self.num_layers = num_layers
         self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
+        self.name = f"RNN_{input_size}_{hidden_size}_{num_layers}"
 
     def forward(self, x, lengths):
-        x = x.unsqueeze(-1)
         packed_input = nn.utils.rnn.pack_padded_sequence(x, lengths.cpu(), batch_first=True, enforce_sorted=False)
         _, hidden = self.rnn(packed_input)
         out = self.fc(hidden[-1])

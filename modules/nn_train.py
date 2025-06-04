@@ -8,6 +8,7 @@ from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix, Confusio
 
 from modules.utils import save_model, plot_learning_curve
 import datetime
+import pandas as pd
 
 def dataframe_to_tensors(dataframe, device=None):
     """
@@ -84,9 +85,10 @@ def big_train_loop(model,
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     run_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    wandb.finish()
     wandb.init(
         project=f"rat-frustration-{model_name}",
-        name=f"{model_name}_{run_datetime}",
+        name=f"{run_datetime}",
         config={
             "model": model_name,
             "input_size": 1,
@@ -126,27 +128,26 @@ def big_train_loop(model,
             valid_outputs = model(valid_x, valid_lengths)
             valid_loss = criterion(valid_outputs, valid_y)
         
-        
+        saved = False
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
             save_model(model, epoch, best_valid_loss, output_dir)
-            print(f"Saved best model at epoch {epoch+1}")
+            saved = True
         
         # Log training and validation metrics every 10 epochs
-        if (epoch + 1) % 10 == 0:
-            with torch.no_grad():
-                train_probs = torch.softmax(train_outputs, dim=1)[:, 1]
-                train_auc = roc_auc_score(train_y_cpu, train_probs.detach().cpu().numpy())
-                
-                valid_probs = torch.softmax(valid_outputs, dim=1)[:, 1]
-                valid_auc = roc_auc_score(valid_y_cpu, valid_probs.cpu().numpy())
-                
-                epoch_list.append(epoch)
-                train_loss_list.append(train_loss.item())
-                valid_loss_list.append(valid_loss.item())
-                train_auc_list.append(train_auc)
-                valid_auc_list.append(valid_auc)
-                
+        with torch.no_grad():
+            train_probs = torch.softmax(train_outputs, dim=1)[:, 1]
+            train_auc = roc_auc_score(train_y_cpu, train_probs.detach().cpu().numpy())
+            
+            valid_probs = torch.softmax(valid_outputs, dim=1)[:, 1]
+            valid_auc = roc_auc_score(valid_y_cpu, valid_probs.cpu().numpy())
+            
+            epoch_list.append(epoch)
+            train_loss_list.append(train_loss.item())
+            valid_loss_list.append(valid_loss.item())
+            train_auc_list.append(train_auc)
+            valid_auc_list.append(valid_auc)
+            if epoch % 10 == 0 or epoch == epochs - 1:
                 wandb.log({
                     "train_loss": train_loss,
                     "valid_loss": valid_loss,
@@ -154,8 +155,8 @@ def big_train_loop(model,
                     "valid_auc": valid_auc,
                     "epoch": epoch + 1
                 })
+            print(f"Epoch [{epoch+1}/{epochs}], Train Loss: {train_loss:.4f}, Valid Loss: {valid_loss:.4f}, Train AUC: {train_auc:.4f}, Valid AUC: {valid_auc:.4f} {'(Saved)' if saved else ''}")
 
-        print(f"Epoch [{epoch+1}/{epochs}], Train Loss: {train_loss:.4f}, Valid Loss: {valid_loss:.4f}, Train AUC: {train_auc:.4f}, Valid AUC: {valid_auc:.4f}")
     
     # Save final model
     final_model_path = os.path.join(output_dir, f"{model_name}_final.pth")
@@ -171,4 +172,15 @@ def big_train_loop(model,
     test_auc = roc_auc_score(test_y_cpu, test_probs.cpu().numpy())
     wandb.log({"Test AUC": test_auc})
 
-    return model, epoch_list, train_loss_list, valid_loss_list, train_auc_list, valid_auc_list, test_auc
+    ## making a dataframe for loss, auc
+    train_info = pd.DataFrame({
+        "epoch": epoch_list,
+        "train_loss": train_loss_list,
+        "valid_loss": valid_loss_list,
+        "train_auc": train_auc_list,
+        "valid_auc": valid_auc_list
+    })
+    
+    prediction = test_probs.cpu().numpy()
+    
+    return model, train_info, prediction
