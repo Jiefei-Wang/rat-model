@@ -188,5 +188,5 @@ def big_train_loop(model,
     })
     
     prediction = test_probs.cpu().numpy()
-    
+    wandb.finish()
     return model, train_info, prediction
