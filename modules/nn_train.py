@@ -59,12 +59,27 @@ def big_train_loop(model,
                    nn_train, nn_valid, nn_test,
                    output_base="output/nn",
                    device=None,
-                   epochs=100):
+                   epochs=100, skip_if_exists=True):
+    model_name = model.name
+    model_params = model.params
+    
+    project_name=f"rat-frustration-{model_name}"
+    run_name = model_params
+    
+    if skip_if_exists:
+        try:
+            api = wandb.Api()
+            runs = api.runs(f"{api.default_entity}/{project_name}")
+            for run in runs:
+                if run.name == run_name:
+                    print(f"Run {run_name} already exists in project {project_name}. Skipping training.")
+                    return None, None, None
+        except Exception as e:
+            pass
+    
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    model_name = model.name
-    model_params = model.params
     
     output_dir = os.path.join(output_base, f"{model_name}_{model_params}") 
     
@@ -86,8 +101,8 @@ def big_train_loop(model,
     run_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     wandb.finish()
     wandb.init(
-        project=f"rat-frustration-{model_name}",
-        name=f"{model.params}_{run_datetime}",
+        project=project_name,
+        name=run_name,
         config={
             "model": model_name,
             "input_size": 1,
