@@ -7,7 +7,7 @@ from modules.Data import data_from_pickle_nn
 from modules.nn_train import big_train_loop
 from modules.models import GRUModel, LSTMModel, RNNModel
 
-nn_train, nn_valid, nn_test = data_from_pickle_nn()
+nn_train, nn_valid, nn_test, features_train, features_valid, features_test = data_from_pickle_nn()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -38,6 +38,13 @@ model_list = {
     "RNN": RNNModel
 }
 
+
+hidden_size=128
+num_layer=5
+model_name = "GRU"
+model_class = model_list[model_name]
+
+
 results = []
 for hidden_size in hidden_size_list:
     for num_layer in num_layers:
@@ -56,3 +63,8 @@ for hidden_size in hidden_size_list:
             
 
 
+# features_train=features_train,
+# features_valid=features_valid,
+# features_test=features_test,
+
+model = model_class(input_size=1, hidden_size=hidden_size, num_layers=num_layer, manual_feature_size=features_train.shape[1] )

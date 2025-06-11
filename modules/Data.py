@@ -35,5 +35,12 @@ def data_from_pickle_nn(base = 'output/data'):
         nn_valid = pickle.load(f)
     with open(f'{base}/nn_test.pkl', 'rb') as f:
         nn_test = pickle.load(f)
+    with open(f'{base}/features_train.pkl', 'rb') as f:
+        features_train = pickle.load(f)
+    with open(f'{base}/features_valid.pkl', 'rb') as f:
+        features_valid = pickle.load(f)
+    with open(f'{base}/features_test.pkl', 'rb') as f:
+        features_test = pickle.load(f)
     
-    return nn_train, nn_valid, nn_test
+    
+    return nn_train, nn_valid, nn_test, features_train, features_valid, features_test

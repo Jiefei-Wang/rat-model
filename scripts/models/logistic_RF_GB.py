@@ -30,10 +30,10 @@ roc_auc_gb
 
 
 
-output_folder = 'output/barpress_raw'
-make_bar_press_plot(output_folder, df_train)
+# output_folder = 'output/barpress_raw'
+# make_bar_press_plot(output_folder, df_train)
 
-## visualize barpress
-output_folder = 'output/barpress_processed'
-make_bar_press_plot(output_folder, df2)
+# ## visualize barpress
+# output_folder = 'output/barpress_processed'
+# make_bar_press_plot(output_folder, df2)
 

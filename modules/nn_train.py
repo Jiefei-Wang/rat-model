@@ -3,6 +3,7 @@ import os
 import wandb
 import torch.nn.utils.rnn as rnn_utils
 from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix, ConfusionMatrixDisplay
+import gc
 
 import datetime
 import pandas as pd
@@ -55,27 +56,104 @@ def dataframe_to_tensors(dataframe, device=None):
     
     return padded_tensor, labels_tensor, actual_lengths
 
+
+class wandbLogger:
+    def __init__(self, project, name, config):
+        """
+        Initialize the wandb logger with given parameters.
+        """
+        self.project = project
+        self.name = name
+        self.config = config
+        
+    def creat_logger(self):
+        """
+        Create a wandb run with the specified project, name, and config.
+        """
+        wandb.init(
+            project=self.project,
+            name=self.name,
+            config=self.config,
+            reinit=True
+        )
+        
+    
+    def log(self, data):
+        """
+        Log data to wandb.
+        """
+        if not isinstance(data, dict):
+            raise ValueError("Data must be a dictionary")
+        
+        wandb.log(data)
+    
+    def is_exists(self):
+        """
+        Check if a run with the same name already exists in the project.
+        
+        Returns:
+            bool: True if run exists, False otherwise
+        """
+        try:
+            api = wandb.Api()
+            runs = api.runs(f"{api.default_entity}/{self.project}")
+            for run in runs:
+                if run.name == self.name:
+                    return True
+        except Exception as e:
+            return False
+        return False
+    
+    def __del__(self):
+        """
+        Finish the wandb run when the logger is deleted.
+        """
+        wandb.finish()
+    
+
+
+
+
+
 def big_train_loop(model,
                    nn_train, nn_valid, nn_test,
+                   features_train=None, features_valid=None, features_test=None,
                    output_base="output/nn",
                    device=None,
                    epochs=100, skip_if_exists=True):
+    ## Free memory
+    gc.collect()
+    torch.cuda.empty_cache()
+    
+    
     model_name = model.name
     model_params = model.params
     
     project_name=f"rat-frustration-{model_name}"
     run_name = model_params
     
-    if skip_if_exists:
-        try:
-            api = wandb.Api()
-            runs = api.runs(f"{api.default_entity}/{project_name}")
-            for run in runs:
-                if run.name == run_name:
-                    print(f"Run {run_name} already exists in project {project_name}. Skipping training.")
-                    return None, None, None
-        except Exception as e:
-            pass
+    run_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    logger = wandbLogger(
+        project=project_name,
+        name=run_name,
+        config={
+            "model": model_name,
+            "input_size": 1,
+            "hidden_size": model.hidden_size,
+            "num_layers": model.num_layers,
+            "optimizer": "Adam",
+            "loss_fn": "CrossEntropyLoss",
+            "epochs": epochs,
+            "datetime": run_datetime
+        }
+    )
+    
+    
+    if skip_if_exists and logger.is_exists():
+        print(f"Run {run_name} already exists in project {project_name}. Skipping training.")
+        return None, None, None
+    
+    logger.creat_logger()
     
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -93,29 +171,24 @@ def big_train_loop(model,
     valid_y_cpu = valid_y.cpu().numpy()
     test_y_cpu = test_y.cpu().numpy()
     
+    
+    if (features_train is not None):
+        features_train = torch.tensor(features_train.to_numpy(), dtype=torch.float32).to(device)
+        features_valid = torch.tensor(features_valid.to_numpy(), dtype=torch.float32).to(device)
+        features_test = torch.tensor(features_test.to_numpy(), dtype=torch.float32).to(device)
+        manual_feature_size = features_train.shape[1]
+    else:
+        features_train = None
+        features_valid = None
+        features_test = None
+        manual_feature_size = 0
+    
+    
 
     lr = 0.001
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-    run_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    wandb.finish()
-    wandb.init(
-        project=project_name,
-        name=run_name,
-        config={
-            "model": model_name,
-            "input_size": 1,
-            "hidden_size": model.hidden_size,
-            "num_layers": model.num_layers,
-            "learning_rate": lr,
-            "optimizer": "Adam",
-            "loss_fn": "CrossEntropyLoss",
-            "epochs": epochs,
-            "datetime": run_datetime
-        }
-    )
-    
     os.makedirs(output_dir, exist_ok=True)
     best_valid_loss = float('inf')
     
@@ -130,7 +203,7 @@ def big_train_loop(model,
         # Training
         model.train()
         optimizer.zero_grad()
-        train_outputs = model(train_x, train_lengths)
+        train_outputs = model(train_x, train_lengths, features_train)
         train_loss = criterion(train_outputs, train_y)
         train_loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -140,7 +213,7 @@ def big_train_loop(model,
         # Validation
         model.eval()
         with torch.no_grad():
-            valid_outputs = model(valid_x, valid_lengths)
+            valid_outputs = model(valid_x, valid_lengths, features_valid)
             valid_loss = criterion(valid_outputs, valid_y)
         
         saved = False
@@ -164,7 +237,7 @@ def big_train_loop(model,
             train_auc_list.append(train_auc)
             valid_auc_list.append(valid_auc)
             if epoch % 10 == 0 or epoch == epochs - 1:
-                wandb.log({
+                logger.log({
                     "train_loss": train_loss,
                     "valid_loss": valid_loss,
                     "train_auc": train_auc,
@@ -183,11 +256,11 @@ def big_train_loop(model,
     ## Evaluate on Test Set
     model.eval()
     with torch.no_grad():
-        test_logits = model(test_x, test_lengths)
+        test_logits = model(test_x, test_lengths, features_test)
         test_probs = torch.softmax(test_logits, dim=1)[:, 1]
         
     test_auc = roc_auc_score(test_y_cpu, test_probs.cpu().numpy())
-    wandb.log({
+    logger.log({
         "Test AUC": test_auc,
         "Best Valid Loss": best_valid_loss,
         "Best Valid AUC": max(valid_auc_list)
@@ -203,5 +276,4 @@ def big_train_loop(model,
     })
     
     prediction = test_probs.cpu().numpy()
-    wandb.finish()
     return model, train_info, prediction
