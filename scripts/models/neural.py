@@ -6,9 +6,8 @@ import torch
 from modules.Data import data_from_pickle_nn
 from modules.nn_train import big_train_loop
 from modules.models import GRUModel, LSTMModel, RNNModel
+import wandb
 
-nn_train, nn_valid, nn_test, features_train, features_valid, features_test = data_from_pickle_nn()
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
@@ -43,6 +42,80 @@ hidden_size=128
 num_layer=5
 model_name = "GRU"
 model_class = model_list[model_name]
+
+
+sweep_config = {
+    'method': 'random'
+    }
+
+metric = {
+    'name': 'loss',
+    'goal': 'minimize'   
+    }
+
+sweep_config['metric'] = metric
+
+parameters_dict = {
+    'hidden_size': {
+        'values': [4,8,16,32,64, 128,256]
+        },
+    'num_layers': {
+        'values': [1,2,3,4,5,6]
+        },
+    'features': {
+          'values': [True, False]
+        },
+    }
+
+sweep_config['parameters'] = parameters_dict
+
+
+import pprint
+pprint.pprint(sweep_config)
+
+
+
+sweep_id = wandb.sweep(sweep_config, project="pytorch-sweeps-demo")
+
+
+def train_outter(model_class, config):
+    with wandb.init(config=config):
+        config = wandb.config
+        hidden_size = config.hidden_size
+        num_layers = config.num_layers
+        use_features = config.features
+
+        nn_train, nn_valid, nn_test, features_train, features_valid, features_test = data_from_pickle_nn()
+        
+        features_size = features_train.shape[1] if use_features else 0
+        
+        if use_features:
+            model = model_class(input_size=1, hidden_size=hidden_size, num_layers=num_layers, manual_feature_size=features_size)
+        else:
+            model = model_class(input_size=1, hidden_size=hidden_size, num_layers=num_layers)
+            features_train = None
+            features_valid = None
+            features_test = None
+            
+        
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        big_train_loop(
+                model=model,
+                nn_train=nn_train,
+                nn_valid=nn_valid,
+                nn_test=nn_test,
+                features_train=features_train,
+                features_valid=features_valid,
+                features_test=features_test,
+                epochs = train_epochs)
+        
+
+wandb.agent(sweep_id, train_outter, count=5)
+
+        
+
+
+
 
 
 results = []

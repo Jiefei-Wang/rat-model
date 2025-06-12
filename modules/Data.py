@@ -2,11 +2,18 @@ import pickle
 def data_from_pickle(base = 'output/data' ):
     with open(f'{base}/df_raw.pkl', 'rb') as f:
         df_raw = pickle.load(f)
-    with open(f'{base}/df.pkl', 'rb') as f:
-        df = pickle.load(f)
-    with open(f'{base}/x_y.pkl', 'rb') as f:
-        x, y = pickle.load(f)
-    return df_raw, df, x, y
+    with open(f'{base}/df_ML.pkl', 'rb') as f:
+        df_ML = pickle.load(f)
+    with open(f'{base}/row_train.pkl', 'rb') as f:
+        row_train = pickle.load(f)
+    with open(f'{base}/row_valid.pkl', 'rb') as f:
+        row_valid = pickle.load(f)
+    with open(f'{base}/row_test.pkl', 'rb') as f:
+        row_test = pickle.load(f)
+    with open(f'{base}/feature_names.pkl', 'rb') as f:
+        feature_names = pickle.load(f)
+        
+    return df_raw, df_ML, row_train, row_valid, row_test, feature_names
 
 def data_from_pickle_train_valid_test(base = 'output/data'):
     with open(f'{base}/df_train.pkl', 'rb') as f:

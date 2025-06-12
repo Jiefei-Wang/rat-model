@@ -6,51 +6,50 @@ from sklearn.metrics import roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
 
 
-def build_logistic_model(train_target, train_features):
-    model = LogisticRegression(max_iter=1000)
+def build_logistic_model(train_target, train_features, config):
+    key_list = ['penalty', 'C']
+    model_config = {key: config[key] for key in key_list if key in config}
+    model = LogisticRegression(max_iter=1000, **model_config)
     model.fit(train_features, train_target)
     return model
 
-def build_random_forest_model(train_target, train_features):
-    model = RandomForestClassifier(n_estimators=100, random_state=42) 
+def build_random_forest_model(train_target, train_features, config):
+    key_list = ['n_estimators', 'max_depth', 'min_samples_split', 'min_samples_leaf']
+    model_config = {key: config[key] for key in key_list if key in config}
+    model = RandomForestClassifier(random_state=42, **model_config) 
     model.fit(train_features, train_target)
     return model
 
-def build_gradient_boosting_model(train_target, train_features):
-    model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=2, random_state=42)
+def build_gradient_boosting_model(train_target, train_features, config):
+    key_list = ['n_estimators', 'learning_rate', 'max_depth']
+    model_config = {key: config[key] for key in key_list if key in config}
+    model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=2, random_state=42, **model_config)
     model.fit(train_features, train_target)
     return model
 
 
-
-def logistic_model(train_target, train_features, test_features): 
-    """
-    Fit a logistic regression model to the data and return the predicted probabilities for the test set.
- 
-    Args:
-        train_target (pd.Series): The target variable for the training set.
-        train_features (pd.DataFrame): The features for the training set.
-        test_features (pd.DataFrame): The features for the test set.
- 
-    Returns:
-        np.array: The predicted probabilities for the test set.
-    """
-    model = build_logistic_model(train_target, train_features)
+def logistic_model(train_target, train_features, test_features, config={}): 
+    model = build_logistic_model(train_target, train_features, config)
     probabilities = model.predict_proba(test_features)[:,1]
     return probabilities
 
 
-def random_forest_model(train_target, train_features, test_features): 
-    model = build_random_forest_model(train_target, train_features)
+def random_forest_model(train_target, train_features, test_features, config={}): 
+    model = build_random_forest_model(train_target, train_features, config)
     probabilities = model.predict_proba(test_features)[:,1]
     
     return probabilities 
 
-def gradient_boosting_model(train_target, train_features, test_features): 
-    model= build_gradient_boosting_model(train_target, train_features)
+def gradient_boosting_model(train_target, train_features, test_features, config={}): 
+    model= build_gradient_boosting_model(train_target, train_features, config)
     probabilities = model.predict_proba(test_features)[:,1]
-
     return probabilities 
+
+
+
+
+
+
 
 def cross_validate_auc(model_function, X, y, n_splits=10):
     kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)

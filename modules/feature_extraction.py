@@ -171,5 +171,4 @@ def convert_to_features(df):
         
     # Select features and the target
     X = df3[features]
-    y = df3['category']
-    return X, y
+    return X

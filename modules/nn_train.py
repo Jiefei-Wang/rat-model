@@ -133,21 +133,6 @@ def big_train_loop(model,
     run_name = model_params
     
     run_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    logger = wandbLogger(
-        project=project_name,
-        name=run_name,
-        config={
-            "model": model_name,
-            "input_size": 1,
-            "hidden_size": model.hidden_size,
-            "num_layers": model.num_layers,
-            "optimizer": "Adam",
-            "loss_fn": "CrossEntropyLoss",
-            "epochs": epochs,
-            "datetime": run_datetime
-        }
-    )
-    
     
     if skip_if_exists and logger.is_exists():
         print(f"Run {run_name} already exists in project {project_name}. Skipping training.")
