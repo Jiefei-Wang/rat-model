@@ -5,7 +5,7 @@ os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
 import torch
 from modules.Data import data_from_pickle_nn
 from modules.nn_train import big_train_loop
-from modules.model_neural import GRUModel, LSTMModel, RNNModel
+from modules.nn_models import GRUModel, LSTMModel, RNNModel
 import wandb
 
 
@@ -113,9 +113,6 @@ def train_outter(model_class, config):
 wandb.agent(sweep_id, train_outter, count=5)
 
         
-
-
-
 
 
 results = []

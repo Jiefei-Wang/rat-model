@@ -57,70 +57,14 @@ def dataframe_to_tensors(dataframe, device=None):
     return padded_tensor, labels_tensor, actual_lengths
 
 
-class wandbLogger:
-    def __init__(self, project, name, config):
-        """
-        Initialize the wandb logger with given parameters.
-        """
-        self.project = project
-        self.name = name
-        self.config = config
-        
-    def creat_logger(self):
-        """
-        Create a wandb run with the specified project, name, and config.
-        """
-        wandb.init(
-            project=self.project,
-            name=self.name,
-            config=self.config,
-            reinit=True
-        )
-        
-    
-    def log(self, data):
-        """
-        Log data to wandb.
-        """
-        if not isinstance(data, dict):
-            raise ValueError("Data must be a dictionary")
-        
-        wandb.log(data)
-    
-    def is_exists(self):
-        """
-        Check if a run with the same name already exists in the project.
-        
-        Returns:
-            bool: True if run exists, False otherwise
-        """
-        try:
-            api = wandb.Api()
-            runs = api.runs(f"{api.default_entity}/{self.project}")
-            for run in runs:
-                if run.name == self.name:
-                    return True
-        except Exception as e:
-            return False
-        return False
-    
-    def __del__(self):
-        """
-        Finish the wandb run when the logger is deleted.
-        """
-        wandb.finish()
-    
-
-
-
-
 
 def big_train_loop(model,
                    nn_train, nn_valid, nn_test,
                    features_train=None, features_valid=None, features_test=None,
+                   config = {},
                    output_base="output/nn",
                    device=None,
-                   epochs=100, skip_if_exists=True):
+                   epochs=100):
     ## Free memory
     gc.collect()
     torch.cuda.empty_cache()
@@ -134,11 +78,6 @@ def big_train_loop(model,
     
     run_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    if skip_if_exists and logger.is_exists():
-        print(f"Run {run_name} already exists in project {project_name}. Skipping training.")
-        return None, None, None
-    
-    logger.creat_logger()
     
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

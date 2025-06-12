@@ -1,7 +1,7 @@
 import wandb
 import numpy as np
-from modules.model_tradition import logistic_model
-from modules.train import train_traditional_model
+from modules.tradition_models import logistic_model
+from modules.tradition_train import train_traditional_model
 from modules.Data import data_from_pickle
 
 
@@ -29,7 +29,8 @@ parameters.update({
 sweep_config = sweep_config.copy()
 sweep_config['parameters'] = parameters
 
-project = "LG_sweep"
+model="logistic_model"
+project = model
 sweep_id = wandb.sweep(sweep_config, project=project)
 
 
@@ -37,7 +38,7 @@ with open("scripts/sweep/template.py", "r") as f:
     template = f.read()
 
 code = template.format(
-    model="logistic_model",
+    model=model,
     sweep_id=sweep_id,
     project=project
 )

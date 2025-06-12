@@ -6,7 +6,7 @@ import os
 import re
 from sklearn.ensemble import RandomForestClassifier
 from modules.data_management import manage_data
-from modules.model_neural import GRUModel
+from modules.nn_models import GRUModel
 from modules.read_data import read_data
 from modules.feature_extraction import convert_to_features
 

@@ -1,7 +1,7 @@
 
 import wandb
-from modules.model_tradition import gradient_boosting_model
-from modules.train import train_traditional_model
+from modules.tradition_models import gradient_boosting_model
+from modules.tradition_train import train_traditional_model
 import tempfile
 import os
 # Create a temporary directory

@@ -1,6 +1,6 @@
 from sklearn.metrics import roc_auc_score
 from modules.Data import data_from_pickle
-from modules.model_tradition import logistic_model, random_forest_model, gradient_boosting_model
+from modules.tradition_models import logistic_model, random_forest_model, gradient_boosting_model
 from modules.visualization import make_bar_press_plot
 
 df_raw, df_ML, row_train, row_valid, row_test,feature_names = data_from_pickle()

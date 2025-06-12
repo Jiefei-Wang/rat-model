@@ -1,7 +1,7 @@
 import wandb
 import numpy as np
-from modules.model_tradition import gradient_boosting_model
-from modules.train import train_traditional_model
+from modules.tradition_models import gradient_boosting_model
+from modules.tradition_train import train_traditional_model
 from modules.Data import data_from_pickle
 
 
