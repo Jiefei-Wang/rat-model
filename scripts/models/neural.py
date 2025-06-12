@@ -5,7 +5,7 @@ os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
 import torch
 from modules.Data import data_from_pickle_nn
 from modules.nn_train import big_train_loop
-from modules.models import GRUModel, LSTMModel, RNNModel
+from modules.model_neural import GRUModel, LSTMModel, RNNModel
 import wandb
 
 

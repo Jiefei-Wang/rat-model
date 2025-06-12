@@ -21,9 +21,9 @@ def build_random_forest_model(train_target, train_features, config):
     return model
 
 def build_gradient_boosting_model(train_target, train_features, config):
-    key_list = ['n_estimators', 'learning_rate', 'max_depth']
+    key_list = ['n_estimators', 'subsample', 'max_depth', "min_samples_split", "min_samples_leaf"]
     model_config = {key: config[key] for key in key_list if key in config}
-    model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=2, random_state=42, **model_config)
+    model = GradientBoostingClassifier(learning_rate=0.1, random_state=42, **model_config)
     model.fit(train_features, train_target)
     return model
 
@@ -44,10 +44,6 @@ def gradient_boosting_model(train_target, train_features, test_features, config=
     model= build_gradient_boosting_model(train_target, train_features, config)
     probabilities = model.predict_proba(test_features)[:,1]
     return probabilities 
-
-
-
-
 
 
 
