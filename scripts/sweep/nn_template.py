@@ -4,6 +4,14 @@ import tempfile
 import os
 import wandb
 
+api = wandb.Api()
+project = api.project("{project}")
+# get the latest sweep for the project
+sweeps = project.sweeps()
+sweep_id = sweeps[0].id
+
+
+
 # Create a temporary directory
 temp_dir = tempfile.mkdtemp()
 os.environ["WANDB_DIR"] = temp_dir
