@@ -186,7 +186,7 @@ def big_train_loop(model,
             if valid_auc>=0.7:
                 model_path = os.path.join(base_path, "best.pth")
                 torch.save(model.state_dict(), model_path)
-                artifact = run.Artifact('best_model', type='model')
+                artifact = wandb.Artifact('best_model', type='model')
                 artifact.add_file(model_path)
                 run.log_artifact(artifact)
                 saved = True
@@ -201,7 +201,7 @@ def big_train_loop(model,
     # Save final model
     model_path = os.path.join(base_path, "final.pth")
     torch.save(model.state_dict(), model_path)
-    artifact = run.Artifact('final', type='model')
+    artifact = wandb.Artifact('final', type='model')
     artifact.add_file(model_path)
     run.log_artifact(artifact)
     
