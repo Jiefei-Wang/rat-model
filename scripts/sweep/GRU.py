@@ -7,5 +7,5 @@ import wandb
 # Create a temporary directory
 temp_dir = tempfile.mkdtemp()
 os.environ["WANDB_DIR"] = temp_dir
-wandb.agent('3szgahh6', function=lambda: outter_train_loop(model_class=GRUModel), project = "GRU_sweep")
+wandb.agent('ejnw0hxd', function=lambda: outter_train_loop(model_class=GRUModel), project = "GRU_sweep")
 

@@ -7,5 +7,5 @@ import wandb
 # Create a temporary directory
 temp_dir = tempfile.mkdtemp()
 os.environ["WANDB_DIR"] = temp_dir
-wandb.agent('vhth1boc', function=lambda: outter_train_loop(model_class=LSTMModel), project = "LSTM_sweep")
+wandb.agent('xoodk93u', function=lambda: outter_train_loop(model_class=LSTMModel), project = "LSTM_sweep")
 
