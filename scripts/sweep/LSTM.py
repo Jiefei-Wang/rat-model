@@ -15,5 +15,5 @@ sweep_id = sweeps[0].id
 # Create a temporary directory
 temp_dir = tempfile.mkdtemp()
 os.environ["WANDB_DIR"] = temp_dir
-wandb.agent('2la2ax8t', function=lambda: outter_train_loop(model_class=LSTMModel), project = "LSTM_sweep")
+wandb.agent(sweep_id, function=lambda: outter_train_loop(model_class=LSTMModel), project = "LSTM_sweep")
 

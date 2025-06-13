@@ -38,7 +38,6 @@ for key, model_class in model_list.items():
 
     code = template.format(
         model_class=model_class,
-        sweep_id=sweep_id,
         project = project
     )
     
