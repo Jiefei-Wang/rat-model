@@ -25,7 +25,7 @@ class EarlyStopper:
         if validation_loss < self.min_validation_loss:
             self.min_validation_loss = validation_loss
             self.counter = 0
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
+        elif validation_loss >= (self.min_validation_loss + self.min_delta):
             self.counter += 1
             if self.counter >= self.patience:
                 return True
@@ -104,7 +104,7 @@ def big_train_loop(model,
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    stopper = EarlyStopper(patience=100, min_delta=0.01)
+    stopper = EarlyStopper(patience=500, min_delta=0)
     
     base_path = tempfile.mkdtemp()
     os.makedirs(base_path, exist_ok=True)
