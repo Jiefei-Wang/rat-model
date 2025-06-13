@@ -4,10 +4,40 @@ import wandb
 import torch.nn.utils.rnn as rnn_utils
 from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix, ConfusionMatrixDisplay
 import gc
+import tempfile
+import os
 
 import datetime
 import pandas as pd
 from tqdm import tqdm
+
+from modules.Data import data_from_pickle
+
+
+class EarlyStopper:
+    def __init__(self, patience=1, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = float('inf')
+
+    def early_stop(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+
+class contextManager:
+    def __init__(self, run):
+        self.run = run
+    
+    def __del__(self):
+        self.run.finish()
+
 
 def dataframe_to_tensors(dataframe, device=None):
     """
@@ -58,70 +88,62 @@ def dataframe_to_tensors(dataframe, device=None):
 
 
 
+
 def big_train_loop(model,
-                   nn_train, nn_valid, nn_test,
-                   features_train=None, features_valid=None, features_test=None,
-                   config = {},
-                   output_base="output/nn",
+                   nn_train, nn_valid,
+                   features_train=None, features_valid=None,
                    device=None,
-                   epochs=100):
+                   epochs=100,
+                   use_features = None,
+                   run = None
+                   ):
     ## Free memory
     gc.collect()
     torch.cuda.empty_cache()
     
-    
-    model_name = model.name
-    model_params = model.params
-    
-    project_name=f"rat-frustration-{model_name}"
-    run_name = model_params
-    
-    run_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    stopper = EarlyStopper(patience=100, min_delta=0.01)
+    
+    base_path = tempfile.mkdtemp()
+    os.makedirs(base_path, exist_ok=True)
+    
+    if run is None:
+        run = wandb.init(
+            project=model.name,
+            name = f"{model.params}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            config={
+                'use_features': use_features
+            }
+        )
+        runContext = contextManager(run)
+    
+    
+    config = run.config
+    use_features = config.get("use_features", False) 
+    
     model = model.to(device)
-    
-    output_dir = os.path.join(output_base, f"{model_name}_{model_params}") 
-    
+    run.watch(model, log_freq=100, log="all")
     
     # Convert all data to tensors and load directly to GPU
     train_x, train_y, train_lengths = dataframe_to_tensors(nn_train, device=device)
     valid_x, valid_y, valid_lengths = dataframe_to_tensors(nn_valid, device=device)
-    test_x, test_y, test_lengths = dataframe_to_tensors(nn_test, device=device)
+    # test_x, test_y, test_lengths = dataframe_to_tensors(nn_test, device=device)
     
     train_y_cpu = train_y.cpu().numpy()
     valid_y_cpu = valid_y.cpu().numpy()
-    test_y_cpu = test_y.cpu().numpy()
+    # test_y_cpu = test_y.cpu().numpy()
     
-    
-    if (features_train is not None):
+    if use_features:
         features_train = torch.tensor(features_train.to_numpy(), dtype=torch.float32).to(device)
         features_valid = torch.tensor(features_valid.to_numpy(), dtype=torch.float32).to(device)
-        features_test = torch.tensor(features_test.to_numpy(), dtype=torch.float32).to(device)
-        manual_feature_size = features_train.shape[1]
-    else:
-        features_train = None
-        features_valid = None
-        features_test = None
-        manual_feature_size = 0
     
-    
-
     lr = 0.001
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-    os.makedirs(output_dir, exist_ok=True)
-    best_valid_loss = float('inf')
-    
-    epoch_list = []
-    train_loss_list = []
-    valid_loss_list = []
-    train_auc_list = []
-    valid_auc_list = []
-    
+    best_valid_auc = 0
     for epoch in tqdm(range(epochs), desc="Training", unit="epoch"):
         # Update progress bar with current losses after each epoch
         # Training
@@ -140,13 +162,6 @@ def big_train_loop(model,
             valid_outputs = model(valid_x, valid_lengths, features_valid)
             valid_loss = criterion(valid_outputs, valid_y)
         
-        saved = False
-        if valid_loss < best_valid_loss:
-            best_valid_loss = valid_loss
-            model_path = os.path.join(output_dir, "best.pth")
-            torch.save(model.state_dict(), model_path)
-            saved = True
-        
         # Log training and validation metrics every 10 epochs
         with torch.no_grad():
             train_probs = torch.softmax(train_outputs, dim=1)[:, 1]
@@ -155,49 +170,78 @@ def big_train_loop(model,
             valid_probs = torch.softmax(valid_outputs, dim=1)[:, 1]
             valid_auc = roc_auc_score(valid_y_cpu, valid_probs.cpu().numpy())
             
-            epoch_list.append(epoch)
-            train_loss_list.append(train_loss.item())
-            valid_loss_list.append(valid_loss.item())
-            train_auc_list.append(train_auc)
-            valid_auc_list.append(valid_auc)
             if epoch % 10 == 0 or epoch == epochs - 1:
-                logger.log({
+                run.log({
                     "train_loss": train_loss,
                     "valid_loss": valid_loss,
                     "train_auc": train_auc,
                     "valid_auc": valid_auc,
                     "epoch": epoch + 1
                 })
-                
-            tqdm.write(f"T Loss: {train_loss:.4f}, V Loss: {valid_loss:.4f}, T AUC: {train_auc:.4f}, V AUC: {valid_auc:.4f} {'(Saved)' if saved else ''}")
-
+            
+            
+        saved = False
+        if valid_auc < best_valid_auc:
+            best_valid_auc = valid_auc
+            if valid_auc>=0.7:
+                model_path = os.path.join(base_path, "best.pth")
+                torch.save(model.state_dict(), model_path)
+                artifact = run.Artifact('best_model', type='model')
+                artifact.add_file(model_path)
+                run.log_artifact(artifact)
+                saved = True
+        
+        tqdm.write(f"T Loss: {train_loss:.4f}, V Loss: {valid_loss:.4f}, T AUC: {train_auc:.4f}, V AUC: {valid_auc:.4f} counter: {stopper.counter} {'(Saved)' if saved else ''}")
+        
+        # Early stopping
+        if stopper.early_stop(valid_loss.item()):
+            tqdm.write(f"Early stopping at epoch {epoch + 1}")
+            break
     
     # Save final model
-    final_model_path = os.path.join(output_dir, f"final.pth")
-    torch.save(model.state_dict(), final_model_path)
+    model_path = os.path.join(base_path, "final.pth")
+    torch.save(model.state_dict(), model_path)
+    artifact = run.Artifact('final', type='model')
+    artifact.add_file(model_path)
+    run.log_artifact(artifact)
     
-    
-    ## Evaluate on Test Set
-    model.eval()
-    with torch.no_grad():
-        test_logits = model(test_x, test_lengths, features_test)
-        test_probs = torch.softmax(test_logits, dim=1)[:, 1]
-        
-    test_auc = roc_auc_score(test_y_cpu, test_probs.cpu().numpy())
-    logger.log({
-        "Test AUC": test_auc,
-        "Best Valid Loss": best_valid_loss,
-        "Best Valid AUC": max(valid_auc_list)
+    run.log({
+            "best_valid_auc": best_valid_auc
         })
+        
+    return model
 
-    ## making a dataframe for loss, auc
-    train_info = pd.DataFrame({
-        "epoch": epoch_list,
-        "train_loss": train_loss_list,
-        "valid_loss": valid_loss_list,
-        "train_auc": train_auc_list,
-        "valid_auc": valid_auc_list
-    })
+
+
+def outter_train_loop(model_class, hidden_size=None, num_layers=None, epochs=None, use_features=None):
+    df_raw, df_ML, row_train, row_valid, row_test,feature_names = data_from_pickle()
+
+    nn_train = df_ML.loc[row_train, ['label', 'data']]
+    nn_valid = df_ML.loc[row_valid, ['label', 'data']]
+    features_train = df_ML.loc[row_train, feature_names]
+    features_valid = df_ML.loc[row_valid, feature_names]
+
     
-    prediction = test_probs.cpu().numpy()
-    return model, train_info, prediction
+    if "WANDB_SWEEP_ID" in os.environ:
+        run = wandb.init()
+        config = wandb.config
+        runContext = contextManager(run)
+        hidden_size=config['hidden_size']
+        num_layers=config['num_layers']
+        use_features=config['use_features']
+        epochs=config['epochs']
+    else:
+        run = None
+        
+    feature_size = features_train.shape[1] if use_features else 0
+    model = model_class(input_size=1, hidden_size=hidden_size, num_layers=num_layers, feature_size=feature_size)
+    model = big_train_loop(
+        model=model,
+        nn_train=nn_train,
+        nn_valid=nn_valid,
+        features_train=features_train,
+        features_valid=features_valid,
+        epochs = epochs,
+        use_features=use_features,
+        run = run)
+    return model

@@ -4,11 +4,11 @@ import torch.nn.utils.rnn as rnn_utils # Ensure rnn_utils is imported if not alr
 
 # GRU Model
 class GRUModel(nn.Module):
-    def __init__(self, input_size=1, hidden_size=32, num_layers=3, num_classes=2, manual_feature_size=0): # Added manual_feature_size
+    def __init__(self, input_size=1, hidden_size=32, num_layers=3, num_classes=2, feature_size=0): # Added feature_size
         super(GRUModel, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.manual_feature_size = manual_feature_size  # Store manual_feature_size
+        self.feature_size = feature_size  # Store feature_size
 
         self.gru = nn.GRU(input_size=input_size,
                           hidden_size=hidden_size,
@@ -16,15 +16,13 @@ class GRUModel(nn.Module):
                           batch_first=True)
 
         # Adjust FC layer input size based on manual features
-        fc_input_dim = hidden_size
-        if self.manual_feature_size > 0:
-            fc_input_dim += self.manual_feature_size
+        fc_input_dim = hidden_size + self.feature_size
         
         self.fc = nn.Linear(fc_input_dim, num_classes)
         
         self.name = f"GRU"
-        # Update params to include manual_feature_size if it's a defining characteristic
-        self.params = f"{input_size}_{hidden_size}_{num_layers}_{manual_feature_size}"
+        # Update params to include feature_size if it's a defining characteristic
+        self.params = f"{input_size}_{hidden_size}_{num_layers}_{feature_size}"
 
     def forward(self, x, lengths, manual_features=None): # Added manual_features argument
         packed_input = rnn_utils.pack_padded_sequence(
@@ -34,11 +32,11 @@ class GRUModel(nn.Module):
         # Use the hidden state from the last layer
         rnn_out = hidden[-1]
 
-        if self.manual_feature_size > 0:
+        if self.feature_size > 0:
             if manual_features is None:
-                raise ValueError("manual_feature_size > 0 but manual_features were not provided to the forward method.")
-            if manual_features.shape[1] != self.manual_feature_size:
-                raise ValueError(f"Expected manual_features to have {self.manual_feature_size} features, but got {manual_features.shape[1]}.")
+                raise ValueError("feature_size > 0 but manual_features were not provided to the forward method.")
+            if manual_features.shape[1] != self.feature_size:
+                raise ValueError(f"Expected manual_features to have {self.feature_size} features, but got {manual_features.shape[1]}.")
             # Ensure manual_features is on the same device as rnn_out
             manual_features = manual_features.to(rnn_out.device)
             # Concatenate RNN output with manual features
@@ -52,24 +50,22 @@ class GRUModel(nn.Module):
 
 # LSTM Model
 class LSTMModel(nn.Module):
-    def __init__(self, input_size=1, hidden_size=32, num_layers=3, num_classes=2, manual_feature_size=0): # Added manual_feature_size
+    def __init__(self, input_size=1, hidden_size=32, num_layers=3, num_classes=2, feature_size=0): # Added feature_size
         super(LSTMModel, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.manual_feature_size = manual_feature_size
+        self.feature_size = feature_size
 
         self.lstm = nn.LSTM(input_size=input_size,
                             hidden_size=hidden_size,
                             num_layers=num_layers,
                             batch_first=True)
         
-        fc_input_dim = hidden_size
-        if self.manual_feature_size > 0:
-            fc_input_dim += self.manual_feature_size
+        fc_input_dim = hidden_size + self.feature_size
 
         self.fc = nn.Linear(fc_input_dim, num_classes)
         self.name = f"LSTM"
-        self.params = f"{input_size}_{hidden_size}_{num_layers}_{manual_feature_size}"
+        self.params = f"{input_size}_{hidden_size}_{num_layers}_{feature_size}"
 
     def forward(self, x, lengths, manual_features=None): # Added manual_features argument
         packed_input = rnn_utils.pack_padded_sequence(
@@ -78,11 +74,11 @@ class LSTMModel(nn.Module):
         
         rnn_out = hidden[-1]
 
-        if self.manual_feature_size > 0:
+        if self.feature_size > 0:
             if manual_features is None:
-                raise ValueError("manual_feature_size > 0 but manual_features were not provided to the forward method.")
-            if manual_features.shape[1] != self.manual_feature_size:
-                raise ValueError(f"Expected manual_features to have {self.manual_feature_size} features, but got {manual_features.shape[1]}.")
+                raise ValueError("feature_size > 0 but manual_features were not provided to the forward method.")
+            if manual_features.shape[1] != self.feature_size:
+                raise ValueError(f"Expected manual_features to have {self.feature_size} features, but got {manual_features.shape[1]}.")
             manual_features = manual_features.to(rnn_out.device)
             combined_features = torch.cat((rnn_out, manual_features), dim=1)
             out = self.fc(combined_features)
@@ -94,21 +90,19 @@ class LSTMModel(nn.Module):
 
 # RNN Model
 class RNNModel(nn.Module):
-    def __init__(self, input_size=1, hidden_size=32, num_layers=3, num_classes=2, manual_feature_size=0): # Added manual_feature_size
+    def __init__(self, input_size=1, hidden_size=32, num_layers=3, num_classes=2, feature_size=0): # Added feature_size
         super(RNNModel, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.manual_feature_size = manual_feature_size
+        self.feature_size = feature_size
 
         self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
         
-        fc_input_dim = hidden_size
-        if self.manual_feature_size > 0:
-            fc_input_dim += self.manual_feature_size
+        fc_input_dim = hidden_size + self.feature_size
             
         self.fc = nn.Linear(fc_input_dim, num_classes)
         self.name = f"RNN"
-        self.params = f"{input_size}_{hidden_size}_{num_layers}_{manual_feature_size}"
+        self.params = f"{input_size}_{hidden_size}_{num_layers}_{feature_size}"
 
     def forward(self, x, lengths, manual_features=None): # Added manual_features argument
         packed_input = rnn_utils.pack_padded_sequence(x, lengths.cpu(), batch_first=True, enforce_sorted=False)
@@ -116,11 +110,11 @@ class RNNModel(nn.Module):
         
         rnn_out = hidden[-1]
 
-        if self.manual_feature_size > 0:
+        if self.feature_size > 0:
             if manual_features is None:
-                raise ValueError("manual_feature_size > 0 but manual_features were not provided to the forward method.")
-            if manual_features.shape[1] != self.manual_feature_size:
-                raise ValueError(f"Expected manual_features to have {self.manual_feature_size} features, but got {manual_features.shape[1]}.")
+                raise ValueError("feature_size > 0 but manual_features were not provided to the forward method.")
+            if manual_features.shape[1] != self.feature_size:
+                raise ValueError(f"Expected manual_features to have {self.feature_size} features, but got {manual_features.shape[1]}.")
             manual_features = manual_features.to(rnn_out.device)
             combined_features = torch.cat((rnn_out, manual_features), dim=1)
             out = self.fc(combined_features)

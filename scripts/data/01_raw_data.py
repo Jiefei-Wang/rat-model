@@ -38,6 +38,7 @@ feature_names = x.columns.tolist()
 df_ML = pd.concat([df[['category', 'data']], x], axis=1)
 df_ML['category'] = df_ML['category'].astype('category')
 df_ML['category'] = df_ML['category'].cat.reorder_categories(['FR1', 'EXT'], ordered=True)
+df_ML['label'] = df_ML['category'].cat.codes
 
 
 
