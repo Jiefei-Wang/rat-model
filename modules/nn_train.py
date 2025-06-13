@@ -181,7 +181,7 @@ def big_train_loop(model,
             
             
         saved = False
-        if valid_auc < best_valid_auc:
+        if valid_auc > best_valid_auc:
             best_valid_auc = valid_auc
             if valid_auc>=0.7:
                 model_path = os.path.join(base_path, "best.pth")
