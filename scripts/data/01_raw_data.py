@@ -1,11 +1,11 @@
 # This script process the raw data and saves it to the output/data directory.
+import pickle
+import os
+import pandas as pd
 
 from modules.read_data import read_data
 from modules.data_management import manage_data
 from modules.feature_extraction import convert_to_features
-import pickle
-import os
-import pandas as pd
 from sklearn.model_selection import train_test_split
 
 df_raw = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
@@ -21,6 +21,7 @@ df = manage_data(df_raw,
                   chunk_size=chunk_size, 
                   max_press=max_press,
                   standardize=standardize)
+
 x = convert_to_features(df) 
 
 
