@@ -25,10 +25,11 @@ df = manage_data(df_raw,
 x = convert_to_features(df) 
 
 
-# Train test split
+# Train test split - 90:5:5 (train:validation:test)
 row_train0, row_test = train_test_split(df.index, test_size=0.05, random_state=42, stratify= df[['id', 'category']])
+
 df_tmp = df.loc[row_train0]
-row_train, row_valid = train_test_split(row_train0, test_size=0.05, random_state=42, stratify= df_tmp[['id', 'category']])
+row_train, row_valid = train_test_split(row_train0, test_size=5/95, random_state=42, stratify= df_tmp[['id', 'category']])
 
 
 ## Check if row_train, row_valid, row_test cover all rows
