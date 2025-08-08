@@ -26,9 +26,9 @@ x = convert_to_features(df)
 
 
 # Train test split
-row_train, row_test = train_test_split(df.index, test_size=0.05, random_state=42, stratify= df[['id', 'category']])
-df_tmp = df.loc[row_train]
-row_train, row_valid = train_test_split(row_train, test_size=0.05, random_state=42, stratify= df_tmp[['id', 'category']])
+row_train0, row_test = train_test_split(df.index, test_size=0.05, random_state=42, stratify= df[['id', 'category']])
+df_tmp = df.loc[row_train0]
+row_train, row_valid = train_test_split(row_train0, test_size=0.05, random_state=42, stratify= df_tmp[['id', 'category']])
 
 
 ## Check if row_train, row_valid, row_test cover all rows
@@ -41,7 +41,8 @@ df_ML['category'] = df_ML['category'].astype('category')
 df_ML['category'] = df_ML['category'].cat.reorder_categories(['FR1', 'EXT'], ordered=True)
 df_ML['label'] = df_ML['category'].cat.codes
 
-
+df_sweep = df[['category', 'data']]
+df_sweep_train = df_sweep.loc[row_train0]
 
 
 
@@ -62,6 +63,8 @@ with open(f'{output_base}/row_valid.pkl', 'wb') as f:
 with open(f'{output_base}/row_test.pkl', 'wb') as f:
     pickle.dump(row_test, f)
 
+with open(f'{output_base}/df_sweep_train.pkl', 'wb') as f:
+    pickle.dump(df_sweep_train, f)
 
 with open(f'{output_base}/feature_names.pkl', 'wb') as f:
     pickle.dump(feature_names, f)
