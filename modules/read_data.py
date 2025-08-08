@@ -27,7 +27,7 @@ def collapse_zeros_alike(data, threshold=1):
     for value in data:
         if value <= threshold:
             # Only add this zero if the last element in output isn't zero.
-            if not output or output[-1] <= threshold:
+            if not output or output[-1] > threshold:
                 output.append(0)
         else:
             output.append(value)
