@@ -2,6 +2,7 @@
 import pickle
 import os
 import pandas as pd
+import numpy as np
 
 from modules.read_data import read_data
 from modules.data_management import manage_data
@@ -24,26 +25,39 @@ df = manage_data(df_raw,
 
 x = convert_to_features(df) 
 
+# keep n_test rats for testing
+n_test = 5
+rat_ids = df['id'].unique().tolist()
+train_ids, test_ids = train_test_split(rat_ids, test_size=n_test, random_state=42)
 
-# Train test split - 90:5:5 (train:validation:test)
-row_train0, row_test = train_test_split(df.index, test_size=0.05, random_state=42, stratify= df[['id', 'category']])
-
-df_tmp = df.loc[row_train0]
-row_train, row_valid = train_test_split(row_train0, test_size=5/95, random_state=42, stratify= df_tmp[['id', 'category']])
-
-
-## Check if row_train, row_valid, row_test cover all rows
-assert set(row_train)| set(row_valid)| set(row_test) == set(df.index), "Row splits do not cover all rows in the dataframe."
+# basic df data split
+row_train = df[df['id'].isin(train_ids)].reset_index()
+row_test = df[df['id'].isin(test_ids)].reset_index()
+df_sweep_train = row_train[['category', 'data']]
 
 
+# feature dataset split
 feature_names = x.columns.tolist()
-df_ML = pd.concat([df[['category', 'data']], x], axis=1)
+df_ML = pd.concat([df[['id', 'category', 'data']], x], axis=1)
 df_ML['category'] = df_ML['category'].astype('category')
 df_ML['category'] = df_ML['category'].cat.reorder_categories(['FR1', 'EXT'], ordered=True)
 df_ML['label'] = df_ML['category'].cat.codes
+df_ML_train = df_ML[df_ML['id'].isin(train_ids)].reset_index()
+df_ML_test = df_ML[df_ML['id'].isin(test_ids)].reset_index()
 
-df_sweep = df[['category', 'data']]
-df_sweep_train = df_sweep.loc[row_train0]
+
+
+# Train test split - 90:5:5 (train:validation:test)
+# row_train0, row_test = train_test_split(df.index, test_size=0.05, random_state=42, stratify= df[['id', 'category']])
+
+# df_tmp = df.loc[row_train0]
+# row_train, row_valid = train_test_split(row_train0, test_size=5/95, random_state=42, stratify= df_tmp[['id', 'category']])
+
+
+## Check if row_train, row_valid, row_test cover all rows
+# assert set(row_train)| set(row_valid)| set(row_test) == set(df.index), "Row splits do not cover all rows in the dataframe."
+
+
 
 
 
@@ -55,17 +69,27 @@ if not os.path.exists(output_base):
 with open(f'{output_base}/df_raw.pkl', 'wb') as f:
     pickle.dump(df_raw, f)
 
-with open(f'{output_base}/df_ML.pkl', 'wb') as f:
-    pickle.dump(df_ML, f)
+
+
 with open(f'{output_base}/row_train.pkl', 'wb') as f:
     pickle.dump(row_train, f)
-with open(f'{output_base}/row_valid.pkl', 'wb') as f:
-    pickle.dump(row_valid, f)
+# with open(f'{output_base}/row_valid.pkl', 'wb') as f:
+#     pickle.dump(row_valid, f)
 with open(f'{output_base}/row_test.pkl', 'wb') as f:
     pickle.dump(row_test, f)
 
+
+with open(f'{output_base}/df_ML.pkl', 'wb') as f:
+    pickle.dump(df_ML, f)
+with open(f'{output_base}/df_ML_train.pkl', 'wb') as f:
+    pickle.dump(df_ML_train, f)
+with open(f'{output_base}/df_ML_test.pkl', 'wb') as f:
+    pickle.dump(df_ML_test, f)
+    
 with open(f'{output_base}/df_sweep_train.pkl', 'wb') as f:
     pickle.dump(df_sweep_train, f)
 
 with open(f'{output_base}/feature_names.pkl', 'wb') as f:
     pickle.dump(feature_names, f)
+
+    

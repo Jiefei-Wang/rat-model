@@ -1,47 +1,44 @@
-import wandb
-import numpy as np
-from modules.tradition_models import logistic_model
-from modules.tradition_train import train_traditional_model
-from modules.Data import data_from_pickle
+import os, pickle, wandb
+from types import SimpleNamespace
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import GroupKFold
 
 
-
-df_raw, df_ML, row_train, row_valid, row_test,feature_names = data_from_pickle()
-
-
-sweep_config = {
-    "method": "grid",
-    "metric": {"goal": "maximize", "name": "auc"},
-}
-
-parameters = {
-    "C" : {'values': np.logspace(0.01, 2, 20).tolist()},
-}
-
-parameters.update({key: {'values': [True, False]} for key in feature_names})
+wandb.init()
 
 
-parameters.update({
-    "penalty" : {
-        "value": "l2"
-    }})
+num_folds = 10
+output_base = 'output/data' 
 
-sweep_config = sweep_config.copy()
-sweep_config['parameters'] = parameters
-
-model="logistic_model"
-project = model
-sweep_id = wandb.sweep(sweep_config, project=project)
+wandb_config = {}
+wandb_config = dict(wandb.config)
+wandb_config['C'] = wandb_config.get('C', 0)
+cfg = SimpleNamespace(**wandb_config)
 
 
-with open("scripts/sweep/template.py", "r") as f:
-    template = f.read()
+df_ML_train = pickle.load(open(os.path.join(output_base, "df_ML_train.pkl"), "rb"))
+feature_names = pickle.load(open(os.path.join(output_base, "feature_names.pkl"), "rb"))
 
-code = template.format(
-    model=model,
-    sweep_id=sweep_id,
-    project=project
-)
-## create a bat file in scripts/sweep/logistic.bat to run the sweep
-with open("scripts/sweep/logistic.py", "w") as f:
-    f.write(code)
+
+x_train = df_ML_train.loc[:, feature_names].values
+y_train = df_ML_train.loc[:, 'category'].values
+
+
+if cfg.C ==0 :
+    model = LogisticRegression(max_iter=1000)
+else:
+    model = LogisticRegression(max_iter=1000,penalty = 'l1', C=float(cfg.C), solver='liblinear')
+    
+    
+
+
+groups = df_ML_train['id'].values
+kf = GroupKFold(n_splits=num_folds, shuffle=True, random_state=42)  
+cross_val_results = cross_val_score(model, x_train, y_train, cv=kf, groups=groups)
+
+mean_auc = float(cross_val_results.mean())
+
+wandb.log({"val_auc": mean_auc, 'wandb_config': wandb_config})
+
+

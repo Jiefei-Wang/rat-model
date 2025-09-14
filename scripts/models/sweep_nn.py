@@ -1,48 +1,62 @@
-import os
-os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
-
+import os, pickle, wandb
 import torch
-from modules.Data import data_from_pickle
+# from muon import MuonWithAuxAdam
+from sklearn.model_selection import train_test_split
+
+from modules.nn_models import GRUModel
 from modules.nn_train import big_train_loop
-from modules.nn_models import GRUModel, LSTMModel, RNNModel
-import wandb
 
 
 
-sweep_config = {
-    "method": "grid",
-    "metric": {"goal": "maximize", "name": "best_valid_auc"},
-}
+wandb_config = {}
+run = None
+wandb.init()
+wandb_config = dict(wandb.config)
+run = wandb.run
 
-parameters = {
-    "hidden_size" : {'values': [4,8,16,32,64, 128, 256, 384]},
-    "num_layers" : {'values': [1,2,3,4,5,6]},
-    "use_features" : {'values': [True, False]},
-    "epochs" : {'value': 10000},
-}
+num_folds = 10
+output_base = 'output/data' 
 
-sweep_config['parameters'] = parameters
+hidden_size = wandb_config.get('hidden_size', 1)
+num_layers = wandb_config.get('num_layers', 1)
+use_features = wandb_config.get('use_features', True)
+epochs = wandb_config.get('epochs', 1000)
 
-model_list = {
-    "GRU": "GRUModel",
-    "LSTM": "LSTMModel",
-    "RNN": "RNNModel"
-}
+df_ML_train = pickle.load(open(os.path.join(output_base, "df_ML_train.pkl"), "rb"))
+feature_names = pickle.load(open(os.path.join(output_base, "feature_names.pkl"), "rb"))
 
-for key, model_class in model_list.items():
-    project = f"{key}_sweep"
-    sweep_id = wandb.sweep(sweep_config, project=project)
 
-    with open("scripts/sweep/nn_template.py", "r") as f:
-        template = f.read()
+x_train = df_ML_train[feature_names].values
+y_train = df_ML_train['category'].values
 
-    code = template.format(
-        model_class=model_class,
-        project = project
+
+# id level train valid split
+unique_ids = df_ML_train['id'].unique()
+train_ids, valid_ids = train_test_split(unique_ids, test_size=0.1, random_state=42)
+
+nn_train0 = df_ML_train[df_ML_train['id'].isin(train_ids)].reset_index(drop=True)[['label', 'data']]
+nn_valid = df_ML_train[df_ML_train['id'].isin(valid_ids)].reset_index(drop=True)[['label', 'data']]
+if use_features:
+    features_train = df_ML_train[df_ML_train['id'].isin(train_ids)].reset_index(drop=True)[feature_names]
+    features_valid = df_ML_train[df_ML_train['id'].isin(valid_ids)].reset_index(drop=True)[feature_names]
+    feature_size = features_train.shape[1]
+else:
+    features_train = None
+    features_valid = None
+    feature_size = 0
+
+
+
+model = GRUModel(input_size=1, hidden_size=hidden_size, num_layers=num_layers, feature_size=feature_size)
+optimizer = None
+model = big_train_loop(
+    model=model,
+    nn_train=nn_train0,
+    nn_valid=nn_valid,
+    features_train=features_train,
+    features_valid=features_valid,
+    epochs = epochs,
+    optimizer=optimizer,
+    run =run
     )
-    
-    ## create a bat file in scripts/sweep/logistic.bat to run the sweep
-    with open(f"scripts/sweep/{key}.py", "w") as f:
-        f.write(code)
-
 

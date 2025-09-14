@@ -1,0 +1,17 @@
+method: random
+project: rat-model-lg
+metric:
+  name: val_auc
+  goal: maximize
+parameters:
+  C: 
+    distribution: uniform
+    min: 0
+    max: 10
+
+program: scripts/models/sweep_LG.py
+command:
+  - ${env}
+  - python
+  - ${program}
+

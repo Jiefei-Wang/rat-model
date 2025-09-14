@@ -156,8 +156,11 @@ def mask_constant_values(data):
 
 def process_file(file_path):
     raw_data = extractData(file_path)
+    # set low force values to 0
     data, low_force_mask = filter_low_force(raw_data)
+    # To bar press data: list of lists
     bar_presses, bar_press_mask, bar_press_index = to_bar_press(data)
+    # If a bar press has constant values, remove it
     constant_value_masks = [mask_constant_values(press) for press in bar_presses]
     bar_presses_filtered = [press for press, mask in zip(bar_presses, constant_value_masks) if not mask[0]]
     bar_presses_filtered_index = [index for index, mask in zip(bar_press_index, constant_value_masks) if not mask[0]]
