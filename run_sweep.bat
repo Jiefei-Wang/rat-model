@@ -2,14 +2,13 @@
 
 
 REM test single sweep
-wandb sweep scripts/sweep/sweep_config_lg.yaml
-
-wandb sweep scripts/sweep/sweep_config_gb.yaml
-
-wandb sweep scripts/sweep/sweep_config_gru.yaml
+set PYTHONPATH=%CD%
+python scripts\sweep_params\sweep_params_peak.py
+wandb agent szwjf08-utmb/rat-model-peaks/4thhqz0z
 
 REM run multiple wandb agents in parallel
-call scripts\sweep\parallel_sweep.bat 8 szwjf08-utmb/rat-model-gb/qtta5o13
+set PYTHONPATH=%CD%
+call scripts/sweep_params/parallel_sweep.bat 12 szwjf08-utmb/rat-model-peaks/e6uoif2h
 
 
 REM kill parallel wandb agents

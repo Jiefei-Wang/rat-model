@@ -11,8 +11,9 @@ with open('scripts/data/01_raw_data.py') as f:
 ## To run the sweeps, use train_mode.bat
 ################
 
-with open('scripts/models/sweep_LG.py') as f:
+with open('scripts/sweep_params/sweep_params_peak.py') as f:
     exec(f.read())
+
 
 with open('scripts/models/sweep_RF.py') as f:
     exec(f.read())

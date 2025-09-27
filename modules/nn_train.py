@@ -87,6 +87,19 @@ def dataframe_to_tensors(dataframe, device=None):
     return padded_tensor, labels_tensor, actual_lengths
 
 
+def create_data_loader(x, y, lengths, features=None, batch_size=32, shuffle=True):
+    """Create a DataLoader for batched training"""
+    if features is not None:
+        dataset = torch.utils.data.TensorDataset(x, y, lengths, features)
+    else:
+        dataset = torch.utils.data.TensorDataset(x, y, lengths)
+    
+    return torch.utils.data.DataLoader(
+        dataset, 
+        batch_size=batch_size, 
+        shuffle=shuffle,
+        pin_memory=True if x.device.type == 'cuda' else False
+    )
 
 
 def big_train_loop(model,
@@ -95,7 +108,8 @@ def big_train_loop(model,
                    device=None,
                    epochs=100,
                    optimizer = None,
-                   run = None
+                   run = None,
+                   batch_size=32
                    ):
     ## Free memory
     gc.collect()
@@ -123,6 +137,9 @@ def big_train_loop(model,
         features_train = torch.tensor(features_train.to_numpy(), dtype=torch.float32).to(device)
         features_valid = torch.tensor(features_valid.to_numpy(), dtype=torch.float32).to(device)
     
+    # Create data loader for training
+    train_loader = create_data_loader(train_x, train_y, train_lengths, features_train, batch_size, shuffle=True)
+    
     lr = 0.001
     criterion = torch.nn.CrossEntropyLoss()
     if optimizer is None:
@@ -133,35 +150,56 @@ def big_train_loop(model,
     
     best_valid_auc = 0
     for epoch in tqdm(range(epochs), desc="Training", unit="epoch"):
-        # Update progress bar with current losses after each epoch
-        # Training
+        # Training phase - batched
         model.train()
-        optimizer.zero_grad()
-        train_outputs = model(train_x, train_lengths, features_train)
-        train_loss = criterion(train_outputs, train_y)
-        train_loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        optimizer.step()
+        total_train_loss = 0
+        train_outputs_list = []
+        train_targets_list = []
         
-        # Validation
+        for batch_data in train_loader:
+            if use_features:
+                batch_x, batch_y, batch_lengths, batch_features = batch_data
+            else:
+                batch_x, batch_y, batch_lengths = batch_data
+                batch_features = None
+            
+            optimizer.zero_grad()
+            train_outputs = model(batch_x, batch_lengths, batch_features)
+            train_loss = criterion(train_outputs, batch_y)
+            train_loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            optimizer.step()
+            
+            total_train_loss += train_loss.item()
+            train_outputs_list.append(train_outputs.detach())
+            train_targets_list.append(batch_y)
+        
+        # Calculate average training loss
+        avg_train_loss = total_train_loss / len(train_loader)
+        
+        # Concatenate all training outputs for AUC calculation
+        all_train_outputs = torch.cat(train_outputs_list, dim=0)
+        all_train_targets = torch.cat(train_targets_list, dim=0)
+        
+        # Validation - keep as single batch
         model.eval()
         with torch.no_grad():
             valid_outputs = model(valid_x, valid_lengths, features_valid)
             valid_loss = criterion(valid_outputs, valid_y)
         
         with torch.no_grad():
-            train_probs = torch.softmax(train_outputs, dim=1)[:, 1]
-            train_auc = roc_auc_score(train_y_cpu, train_probs.detach().cpu().numpy())
+            train_probs = torch.softmax(all_train_outputs, dim=1)[:, 1]
+            train_auc = roc_auc_score(all_train_targets.cpu().numpy(), train_probs.cpu().numpy())
             
             valid_probs = torch.softmax(valid_outputs, dim=1)[:, 1]
             valid_auc = roc_auc_score(valid_y_cpu, valid_probs.cpu().numpy())
-            best_valid_auc = max(best_valid_auc, valid_auc)
+            best_valid_auc = max(best_valid_auc, float(valid_auc))
         
         # Log training and validation metrics every 10 epochs
         if epoch % 10 == 0 or epoch == epochs - 1:
             if run is not None:
                 run.log({
-                    "train_loss": train_loss,
+                    "train_loss": avg_train_loss,
                     "valid_loss": valid_loss,
                     "train_auc": train_auc,
                     "valid_auc": valid_auc,
@@ -170,7 +208,7 @@ def big_train_loop(model,
         
         
         
-        tqdm.write(f"T Loss: {train_loss:.4f}, V Loss: {valid_loss:.4f}, T AUC: {train_auc:.4f}, V AUC: {valid_auc:.4f} counter: {stopper.counter}")
+        tqdm.write(f"T Loss: {avg_train_loss:.4f}, V Loss: {valid_loss:.4f}, T AUC: {train_auc:.4f}, V AUC: {valid_auc:.4f} counter: {stopper.counter}")
         
         # Early stopping
         if stopper.early_stop(valid_loss.item()):

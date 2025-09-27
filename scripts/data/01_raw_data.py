@@ -9,34 +9,46 @@ from modules.data_management import manage_data
 from modules.feature_extraction import convert_to_features
 from sklearn.model_selection import train_test_split
 
-df_raw = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
+df_raw1 = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
+df_raw2 = read_data('data/FR1 vs EXT 09_25')
+df_raw2.id = df_raw2.id + 1000
 
-## save the data to output/processed_data
+df_raw = pd.concat([df_raw1, df_raw2], axis=0).reset_index(drop=True)
+
+len(df_raw)
+# 142 recordings
 
 truncate_size = 3
-chunk_size = 1
 max_press = 1000
 standardize = False
+min_press_len = 10
 df = manage_data(df_raw, 
                   truncate_size=truncate_size,
-                  chunk_size=chunk_size, 
                   max_press=max_press,
-                  standardize=standardize)
+                  standardize=standardize,
+                  min_press_len=min_press_len)
+len(df)
+# 23185 bar presses
 
-x = convert_to_features(df) 
+rat_ids = df['id'].unique().tolist()
+len(rat_ids)
+# 41 rats
 
 # keep n_test rats for testing
 n_test = 5
-rat_ids = df['id'].unique().tolist()
 train_ids, test_ids = train_test_split(rat_ids, test_size=n_test, random_state=42)
 
 # basic df data split
 row_train = df[df['id'].isin(train_ids)].reset_index()
 row_test = df[df['id'].isin(test_ids)].reset_index()
-df_sweep_train = row_train[['category', 'data']]
+(len(row_train), len(row_test))
+# (20062, 3123)
+
+# df_barpress_train = row_train[['category', 'data']]
 
 
 # feature dataset split
+x = convert_to_features(df) 
 feature_names = x.columns.tolist()
 df_ML = pd.concat([df[['id', 'category', 'data']], x], axis=1)
 df_ML['category'] = df_ML['category'].astype('category')
@@ -65,11 +77,21 @@ df_ML_test = df_ML[df_ML['id'].isin(test_ids)].reset_index()
 output_base = 'output/data' 
 if not os.path.exists(output_base):
     os.makedirs(output_base)
+
+with open(f'{output_base}/df_raw1.pkl', 'wb') as f:
+    pickle.dump(df_raw1, f)
     
+
+with open(f'{output_base}/df_raw2.pkl', 'wb') as f:
+    pickle.dump(df_raw2, f)
+
 with open(f'{output_base}/df_raw.pkl', 'wb') as f:
     pickle.dump(df_raw, f)
 
 
+# with open(f'{output_base}/df_barpress_train.pkl', 'wb') as f:
+#     pickle.dump(df_barpress_train, f)
+    
 
 with open(f'{output_base}/row_train.pkl', 'wb') as f:
     pickle.dump(row_train, f)
@@ -86,8 +108,6 @@ with open(f'{output_base}/df_ML_train.pkl', 'wb') as f:
 with open(f'{output_base}/df_ML_test.pkl', 'wb') as f:
     pickle.dump(df_ML_test, f)
     
-with open(f'{output_base}/df_sweep_train.pkl', 'wb') as f:
-    pickle.dump(df_sweep_train, f)
 
 with open(f'{output_base}/feature_names.pkl', 'wb') as f:
     pickle.dump(feature_names, f)
