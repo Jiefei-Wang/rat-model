@@ -23,7 +23,7 @@ class GRUModel(nn.Module):
         self.name = f"GRU"
         # Update params to include feature_size if it's a defining characteristic
         self.params = f"{input_size}_{hidden_size}_{num_layers}_{feature_size}"
-
+# batch_x, batch_lengths, batch_features
     def forward(self, x, lengths, manual_features=None): # Added manual_features argument
         packed_input = rnn_utils.pack_padded_sequence(
             x, lengths.cpu(), batch_first=True, enforce_sorted=False)

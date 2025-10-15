@@ -12,7 +12,7 @@ import wandb
 
 from modules.feature_extraction import calculate_peak_vally_features
 
-# wandb.init()
+wandb.init()
 
 num_folds = 10
 output_base = 'output/data' 
@@ -27,7 +27,7 @@ wandb_config = {
     'plateau_size': None
 }
 
-# wandb_config = dict(wandb.config)
+wandb_config = dict(wandb.config)
 cfg = SimpleNamespace(**wandb_config)
 
 

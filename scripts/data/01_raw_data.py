@@ -28,7 +28,7 @@ df = manage_data(df_raw,
                   standardize=standardize,
                   min_press_len=min_press_len)
 len(df)
-# 23185 bar presses
+# 23153 bar presses
 
 rat_ids = df['id'].unique().tolist()
 len(rat_ids)
@@ -42,13 +42,27 @@ train_ids, test_ids = train_test_split(rat_ids, test_size=n_test, random_state=4
 row_train = df[df['id'].isin(train_ids)].reset_index()
 row_test = df[df['id'].isin(test_ids)].reset_index()
 (len(row_train), len(row_test))
-# (20062, 3123)
+# (19749, 3404)
 
 # df_barpress_train = row_train[['category', 'data']]
 
 
-# feature dataset split
-x = convert_to_features(df) 
+# feature dataset 
+
+params = {
+    "distance":16,
+    "height":18,
+    "plateau_size":None,
+    "prominence":8.6,
+    "rel_height":0.5,
+    "threshold":None,
+    "width":14,
+    "wlen":None
+}
+
+x = convert_to_features(df, params=params) 
+
+
 feature_names = x.columns.tolist()
 df_ML = pd.concat([df[['id', 'category', 'data']], x], axis=1)
 df_ML['category'] = df_ML['category'].astype('category')

@@ -1,17 +1,15 @@
 import torch
 import os
-import wandb
 import torch.nn.utils.rnn as rnn_utils
-from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import roc_auc_score
 import gc
 import tempfile
 import os
 
-import datetime
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 
-from modules.Data import data_from_pickle
 
 
 class EarlyStopper:
@@ -58,26 +56,21 @@ def dataframe_to_tensors(dataframe, device=None):
     sequences = dataframe['data'].tolist()
     labels = dataframe['label'].tolist()
     
-    # Truncate sequences to max_length and calculate actual lengths
-    truncated_sequences = []
     actual_lengths = []
     
-    for seqs in sequences:
-        seq_min_length = min([len(seq) for seq in seqs])  
-        seqs = [seq[:seq_min_length] for seq in seqs] 
-        seqs_tensor = torch.tensor(seqs, dtype=torch.float32)
-        # switch 0 and 1 dimensions
-        # to make Time * input_size
-        seqs_tensor = seqs_tensor.permute(1, 0)
-        truncated_sequences.append(seqs_tensor)
-        actual_lengths.append(seq_min_length)
+    actual_lengths=[len(seq) for seq in sequences]
+    max_len = np.max(actual_lengths)
+    sequences_tensor = [torch.tensor(seq, dtype=torch.float32) for seq in sequences]
     
-    # Pad sequences to max_length
+    # Pad sequences to max_length: batch_size x Time
     padded_sequences = rnn_utils.pad_sequence(
-        truncated_sequences,
+        sequences_tensor,
         batch_first=True,
         padding_value=0.0
     )
+    
+    # shape is (batch_size, Time, 1)
+    padded_sequences = padded_sequences.unsqueeze(-1)  
     
     # Convert to tensors and move to device
     padded_tensor = padded_sequences.to(device)
@@ -98,7 +91,7 @@ def create_data_loader(x, y, lengths, features=None, batch_size=32, shuffle=True
         dataset, 
         batch_size=batch_size, 
         shuffle=shuffle,
-        pin_memory=True if x.device.type == 'cuda' else False
+        pin_memory=True if x.device.type == 'cpu' else False
     )
 
 
@@ -139,6 +132,10 @@ def big_train_loop(model,
     
     # Create data loader for training
     train_loader = create_data_loader(train_x, train_y, train_lengths, features_train, batch_size, shuffle=True)
+    # for batch_data in train_loader:
+    #     break
+    
+    
     
     lr = 0.001
     criterion = torch.nn.CrossEntropyLoss()
@@ -216,7 +213,7 @@ def big_train_loop(model,
             break
     
     if run is not None:
-        run.log({"final_valid_auc": float(best_valid_auc)})
+        run.log({"best_valid_auc": float(best_valid_auc)})
     return model
 
 

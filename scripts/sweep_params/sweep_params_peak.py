@@ -3,20 +3,21 @@ import wandb
 
 project = "rat-model-peaks"
 sweep_config = {
-    "method": "grid",
+    "method": "bayes",
     "metric": {"goal": "maximize", "name": "val_auc"},
-    "program": "-m scripts.sweep_models.sweep_peak"
+    "program": "scripts.sweep_models.sweep_peak",
+    "command": ["${env}", "${interpreter}", "-m", "${program}"],
 }
 
 parameters = {
-    "prominence" : {'values': [0.5, 1.0, 2.0, 3.0, 5.0, 8.0]},
-    "height" : {'values': [3.0, 5.0, 8.0, 10.0, 15.0, 20.0]},
-    "distance" : {'values': [1, 3, 5, 10, 20, 50]},
-    "width" : {'values': [None, 1.0, 2.0, 3.0]},
+    "prominence" : {'values': [i * 0.2 for i in range(1, 50)]},
+    "height" : {'values': [i for i in range(1, 50)]},
+    "distance" : {'values': [i for i in range(1, 50)]},
+    "width" : {'values': [None] + [i for i in range(1, 20)]},
     "wlen" : {'values': [None]},
-    "threshold" : {'values': [None, 0.0, 0.5, 1.0, 2.0]},
-    "rel_height" : {'values': [0.5, 0.6, 0.7, 0.8]},
-    "plateau_size" : {'values': [None, 1.0, 2.0, 3.0, 5.0]},
+    "threshold" : {'values': [None] + [i * 0.2 for i in range(1, 100)]},
+    "rel_height" : {'values': [i * 0.1 for i in range(1, 10)]},
+    "plateau_size" : {'values': [None] + [i for i in range(1, 10)]},
 }
 sweep_config['parameters'] = parameters
 

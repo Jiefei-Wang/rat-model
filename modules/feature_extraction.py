@@ -107,8 +107,8 @@ def convert_to_features(df, params={}):
         else:
             feature_df[feature_name] = features
             
-    feature_df = pd.DataFrame(feature_df)
+    feature_df2 = pd.DataFrame(feature_df)
 
-    feature_df['sex'] = df['sex']
+    feature_df2['sex'] = df['sex']
         
-    return feature_df
+    return feature_df2

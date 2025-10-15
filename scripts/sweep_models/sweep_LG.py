@@ -17,6 +17,7 @@ wandb_config['C'] = wandb_config.get('C', 0)
 cfg = SimpleNamespace(**wandb_config)
 
 
+
 df_ML_train = pickle.load(open(os.path.join(output_base, "df_ML_train.pkl"), "rb"))
 feature_names = pickle.load(open(os.path.join(output_base, "feature_names.pkl"), "rb"))
 
@@ -26,9 +27,9 @@ y_train = df_ML_train.loc[:, 'category'].values
 
 
 if cfg.C ==0 :
-    model = LogisticRegression(max_iter=1000)
+    model = LogisticRegression(max_iter=10000, solver='liblinear')
 else:
-    model = LogisticRegression(max_iter=1000,penalty = 'l1', C=float(cfg.C), solver='liblinear')
+    model = LogisticRegression(max_iter=10000,penalty = 'l1', C=float(cfg.C), solver='liblinear')
     
     
 

@@ -2,14 +2,16 @@ import pandas as pd
 import numpy as np
 
 
-def manage_data(df, truncate_size, max_press, standardize, min_press_len = 10):
+def manage_data(df, truncate_size, max_press, standardize, min_press_len = 10, max_press_len = 500):
     df2 = truncate_data(df, truncate_size)
     df3 = df2.explode(['data', 'data_index']).reset_index(drop=True)
     df4 = cap_max_press(df3, max_press)
     df5 = standardize_data(df4) if standardize else df4
     # filter out the short presses
     df6 = df5[df5['data'].apply(len) >= min_press_len]
-    return df6
+    df7 = df6[df6['data'].apply(len) <= max_press_len]
+    df7.reset_index(drop=True, inplace=True)
+    return df7
 
 ## cutting off the first n elements of the data
 def truncate_data(df, length):
