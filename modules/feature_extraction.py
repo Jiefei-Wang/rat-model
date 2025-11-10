@@ -41,17 +41,17 @@ def calculate_peak_features(cell, params):
 
 def calculate_peak_vally_features(x, params):
     x = np.array(x)
-    x_inverse = max(x)-x
+    # x_inverse = max(x)-x
     peaks, pk_num, pk_widths, pk_sharp = calculate_peak_features(x, params)
-    valleys, val_num, val_widths, val_sharp = calculate_peak_features(x_inverse, params)
+    # valleys, val_num, val_widths, val_sharp = calculate_peak_features(x_inverse, params)
 
     features = {
         "pk_num": pk_num,
-        "val_num": val_num,
+        # "val_num": val_num,
         "pk_widths": pk_widths,
-        "val_widths": val_widths,
+        # "val_widths": val_widths,
         "pk_sharp": pk_sharp,
-        "val_sharp": val_sharp
+        # "val_sharp": val_sharp
     }
     
     ## aggregate features if there are multiple peaks/valleys
