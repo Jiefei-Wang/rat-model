@@ -71,7 +71,8 @@ df_ML['label'] = df_ML['category'].cat.codes
 df_ML_train = df_ML[df_ML['id'].isin(train_ids)].reset_index()
 df_ML_test = df_ML[df_ML['id'].isin(test_ids)].reset_index()
 
-
+df_ML.shape
+# (23153, 19)
 
 # Train test split - 90:5:5 (train:validation:test)
 # row_train0, row_test = train_test_split(df.index, test_size=0.05, random_state=42, stratify= df[['id', 'category']])
