@@ -50,13 +50,13 @@ row_test = df[df['id'].isin(test_ids)].reset_index()
 # feature dataset 
 
 params = {
-    "distance":16,
-    "height":18,
+    "distance":19,
+    "height":26,
     "plateau_size":None,
-    "prominence":8.6,
-    "rel_height":0.5,
+    "prominence":0.4,
+    "rel_height":1,
     "threshold":None,
-    "width":14,
+    "width":5,
     "wlen":None
 }
 
