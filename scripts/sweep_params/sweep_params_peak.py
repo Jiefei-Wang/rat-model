@@ -3,7 +3,7 @@ import wandb
 
 project = "rat-model-peaks"
 sweep_config = {
-    "method": "grid",
+    "method": "random",
     "metric": {"goal": "maximize", "name": "val_auc"},
     "program": "scripts.sweep_models.sweep_peak",
     "command": ["${env}", "${interpreter}", "-m", "${program}"],
