@@ -46,7 +46,7 @@ def calculate_peak_vally_features(x, params):
     # valleys, val_num, val_widths, val_sharp = calculate_peak_features(x_inverse, params)
 
     features = {
-        "pk_num": pk_num,
+       # "pk_num": pk_num,
         # "val_num": val_num,
         "pk_widths": pk_widths,
         # "val_widths": val_widths,
@@ -61,6 +61,8 @@ def calculate_peak_vally_features(x, params):
             new_features[k+'_max'], new_features[k+'_mean'], new_features[k+'_min'] = max_mean_min(v)
         else:
             new_features[k] = v
+    # remove pk_sharp_max
+    new_features.pop("pk_sharp_max", None)
     
     return new_features
 
@@ -71,8 +73,9 @@ def calculate_kurtosis(x, params):
     return kurtosis(x) 
 
 # maximum rate of change
-def calculate_force_variation_rate(x, params):
-    return max(np.abs(np.diff(x)))
+# def calculate_force_variation_rate(x, params):
+#     return max(np.abs(np.diff(x)))
+
 
 def calculate_avg_first_5(x, params):
     return np.mean(x[:5])
@@ -90,7 +93,7 @@ def convert_to_features(df, params={}):
         "peak_valley": calculate_peak_vally_features,
         "skewness": calculate_skewness,
         "kurtosis": calculate_kurtosis,
-        "force_variation_rate": calculate_force_variation_rate,
+       # "force_variation_rate": calculate_force_variation_rate,
         "avg_first_5": calculate_avg_first_5,
         "avg_last_5": calculate_avg_last_5
     }
