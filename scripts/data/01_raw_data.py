@@ -47,16 +47,16 @@ row_test = df[df['id'].isin(test_ids)].reset_index()
 # df_barpress_train = row_train[['category', 'data']]
 
 
-# feature dataset 
+# updated best feature dataset parameters
 
 params = {
-    "distance":19,
-    "height":26,
-    "plateau_size":None,
-    "prominence":0.4,
-    "rel_height":1,
+    "distance":11,
+    "height":1,
+    "plateau_size":1,
+    "prominence":2.6,
+    "rel_height":0.5,
     "threshold":None,
-    "width":5,
+    "width":9,
     "wlen":None
 }
 
