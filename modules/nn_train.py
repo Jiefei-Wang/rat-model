@@ -1,16 +1,6 @@
 import torch
-import os
 import torch.nn.utils.rnn as rnn_utils
-from sklearn.metrics import roc_auc_score
-import gc
-import tempfile
-import os
-
-import pandas as pd
 import numpy as np
-from tqdm import tqdm
-
-
 
 class EarlyStopper:
     def __init__(self, patience=1, min_delta=0):
@@ -43,7 +33,6 @@ def dataframe_to_tensors(dataframe, device=None):
     
     Args:
         dataframe: DataFrame with 'data' (sequences) and 'label' columns
-        max_length: Maximum sequence length (default 100)
         device: Target device for tensors
     
     Returns:
@@ -100,120 +89,170 @@ def big_train_loop(model,
                    features_train=None, features_valid=None,
                    device=None,
                    epochs=100,
-                   optimizer = None,
-                   run = None,
-                   batch_size=32
-                   ):
-    ## Free memory
+                   optimizer=None,
+                   run=None,
+                   batch_size=32,
+                   output_dir="output/evaluation",
+                   model_name="model"):
+
+    import gc
+    import os
+    import matplotlib.pyplot as plt
+    import torch
+    from sklearn.metrics import roc_auc_score
+    from tqdm import tqdm
+
     gc.collect()
     torch.cuda.empty_cache()
-    
+
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+
     stopper = EarlyStopper(patience=500, min_delta=0)
-    
-    base_path = tempfile.mkdtemp()
-    os.makedirs(base_path, exist_ok=True)
-    
+
+    # Save to output/evaluation instead of temp directory
+    os.makedirs(output_dir, exist_ok=True)
+
+    best_model_path = os.path.join(output_dir, f"{model_name}_best_model_auc.pt")
+
     model = model.to(device)
-    
-    # Convert all data to tensors and load directly to GPU
+
+    # Convert datasets
     train_x, train_y, train_lengths = dataframe_to_tensors(nn_train, device=device)
     valid_x, valid_y, valid_lengths = dataframe_to_tensors(nn_valid, device=device)
-    
-    train_y_cpu = train_y.cpu().numpy()
+
     valid_y_cpu = valid_y.cpu().numpy()
-    
+
     use_features = features_train is not None
     if use_features:
         features_train = torch.tensor(features_train.to_numpy(), dtype=torch.float32).to(device)
         features_valid = torch.tensor(features_valid.to_numpy(), dtype=torch.float32).to(device)
-    
-    # Create data loader for training
+
     train_loader = create_data_loader(train_x, train_y, train_lengths, features_train, batch_size, shuffle=True)
-    # for batch_data in train_loader:
-    #     break
-    
-    
-    
+
     lr = 0.001
     criterion = torch.nn.CrossEntropyLoss()
+
     if optimizer is None:
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     if run is not None:
         run.watch(model, log_freq=100, log="all")
-    
-    best_valid_auc = 0
-    for epoch in tqdm(range(epochs), desc="Training", unit="epoch"):
-        # Training phase - batched
+
+    best_valid_auc = -float("inf")
+    best_epoch = -1
+
+    # store AUC curves
+    train_auc_curve = []
+    valid_auc_curve = []
+
+    for epoch in tqdm(range(epochs), desc=f"Training {model_name}", unit="epoch"):
+
+      
+        # Training
         model.train()
         total_train_loss = 0
         train_outputs_list = []
         train_targets_list = []
-        
+
         for batch_data in train_loader:
+
             if use_features:
                 batch_x, batch_y, batch_lengths, batch_features = batch_data
             else:
                 batch_x, batch_y, batch_lengths = batch_data
                 batch_features = None
-            
+
             optimizer.zero_grad()
-            train_outputs = model(batch_x, batch_lengths, batch_features)
-            train_loss = criterion(train_outputs, batch_y)
-            train_loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+            outputs = model(batch_x, batch_lengths, batch_features)
+            loss = criterion(outputs, batch_y)
+
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
             optimizer.step()
-            
-            total_train_loss += train_loss.item()
-            train_outputs_list.append(train_outputs.detach())
+
+            total_train_loss += loss.item()
+
+            train_outputs_list.append(outputs.detach())
             train_targets_list.append(batch_y)
-        
-        # Calculate average training loss
+
         avg_train_loss = total_train_loss / len(train_loader)
-        
-        # Concatenate all training outputs for AUC calculation
+
         all_train_outputs = torch.cat(train_outputs_list, dim=0)
         all_train_targets = torch.cat(train_targets_list, dim=0)
+
         
-        # Validation - keep as single batch
+        # Validation
         model.eval()
+
         with torch.no_grad():
+
             valid_outputs = model(valid_x, valid_lengths, features_valid)
             valid_loss = criterion(valid_outputs, valid_y)
-        
-        with torch.no_grad():
-            train_probs = torch.softmax(all_train_outputs, dim=1)[:, 1]
-            train_auc = roc_auc_score(all_train_targets.cpu().numpy(), train_probs.cpu().numpy())
-            
-            valid_probs = torch.softmax(valid_outputs, dim=1)[:, 1]
-            valid_auc = roc_auc_score(valid_y_cpu, valid_probs.cpu().numpy())
-            best_valid_auc = max(best_valid_auc, float(valid_auc))
-        
-        # Log training and validation metrics every 10 epochs
-        if epoch % 10 == 0 or epoch == epochs - 1:
-            if run is not None:
-                run.log({
-                    "train_loss": avg_train_loss,
-                    "valid_loss": valid_loss,
-                    "train_auc": train_auc,
-                    "valid_auc": valid_auc,
-                    "epoch": epoch + 1
-                })
-        
-        
-        
-        tqdm.write(f"T Loss: {avg_train_loss:.4f}, V Loss: {valid_loss:.4f}, T AUC: {train_auc:.4f}, V AUC: {valid_auc:.4f} counter: {stopper.counter}")
-        
+
+            train_probs = torch.softmax(all_train_outputs, dim=1)[:,1]
+            train_auc = roc_auc_score(
+                all_train_targets.cpu().numpy(),
+                train_probs.cpu().numpy()
+            )
+
+            valid_probs = torch.softmax(valid_outputs, dim=1)[:,1]
+            valid_auc = roc_auc_score(
+                valid_y_cpu,
+                valid_probs.cpu().numpy()
+            )
+
+        train_auc_curve.append(train_auc)
+        valid_auc_curve.append(valid_auc)
+
+      
+        # Save best checkpoint
+        if valid_auc > best_valid_auc:
+
+            best_valid_auc = float(valid_auc)
+            best_epoch = epoch + 1
+
+            torch.save(model.state_dict(), best_model_path)
+
+        tqdm.write(
+            f"[{model_name}] Epoch {epoch+1} | "
+            f"T Loss {avg_train_loss:.4f} | "
+            f"V Loss {valid_loss:.4f} | "
+            f"T AUC {train_auc:.4f} | "
+            f"V AUC {valid_auc:.4f} | "
+            f"Best AUC {best_valid_auc:.4f} (epoch {best_epoch})"
+        )
+
         # Early stopping
         if stopper.early_stop(valid_loss.item()):
-            tqdm.write(f"Early stopping at epoch {epoch + 1}")
+            tqdm.write(f"[{model_name}] Early stopping at epoch {epoch+1}")
             break
-    
-    if run is not None:
-        run.log({"best_valid_auc": float(best_valid_auc)})
+
+    # Reload best model
+    model.load_state_dict(torch.load(best_model_path, map_location=device))
+
+    print(f"\n[{model_name}] Loaded best model from epoch {best_epoch} with validation AUC {best_valid_auc:.4f}")
+
+    # Plot AUC curve
+    plt.figure(figsize=(7,5))
+
+    plt.plot(train_auc_curve, label="Train AUC")
+    plt.plot(valid_auc_curve, label="Validation AUC")
+
+    plt.axvline(best_epoch-1, linestyle="--", color="red", label="Best AUC epoch")
+
+    plt.xlabel("Epoch")
+    plt.ylabel("AUC")
+    plt.title(f"{model_name} — Training vs Validation AUC")
+    plt.legend()
+
+    plot_path = os.path.join(output_dir, f"{model_name}_auc_training_curve.png")
+    plt.savefig(plot_path, dpi=300, bbox_inches="tight")
+    plt.show()
+
+    print(f"[{model_name}] AUC curve saved to: {plot_path}")
+    print(f"[{model_name}] Best model saved to: {best_model_path}")
+
     return model
-
-
