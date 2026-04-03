@@ -29,7 +29,7 @@ y_train = df_ML_train.loc[:, 'category'].values
 if cfg.C ==0 :
     model = LogisticRegression(max_iter=10000, solver='liblinear')
 else:
-    model = LogisticRegression(max_iter=10000,penalty = 'l1', C=float(cfg.C), solver='liblinear')
+    model = LogisticRegression(max_iter=10000, l1_ratio=1.0, C=float(cfg.C), solver='liblinear')
     
     
 

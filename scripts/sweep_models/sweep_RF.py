@@ -1,43 +1,41 @@
+import os
+import pickle
 import wandb
-import numpy as np
-from modules.tradition_models import random_forest_model
-from modules.tradition_train import train_traditional_model
-from modules.Data import data_from_pickle
+from types import SimpleNamespace
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score, GroupKFold
 
+wandb.init()
 
+num_folds = 10
+output_base = "output/data"
 
-df_raw, df_ML, row_train, row_valid, row_test,feature_names = data_from_pickle()
+wandb_config = {}
+wandb_config = dict(wandb.config)
+wandb_config["n_estimators"] = wandb_config.get("n_estimators", 100)
+wandb_config["max_depth"] = wandb_config.get("max_depth", None)
+wandb_config["min_samples_split"] = wandb_config.get("min_samples_split", 2)
+wandb_config["min_samples_leaf"] = wandb_config.get("min_samples_leaf", 1)
+cfg = SimpleNamespace(**wandb_config)
 
+df_ML_train = pickle.load(open(os.path.join(output_base, "df_ML_train.pkl"), "rb"))
+feature_names = pickle.load(open(os.path.join(output_base, "feature_names.pkl"), "rb"))
 
-sweep_config = {
-    "method": "grid",
-    "metric": {"goal": "maximize", "name": "auc"},
-}
+x_train = df_ML_train.loc[:, feature_names].values
+y_train = df_ML_train.loc[:, "category"].values
 
-
-parameters = {
-    "n_estimators" : {'values': [i for i in range(10, 201, 10)]},
-    "max_depth" : {'values': [i for i in range(1, 21)]},
-    "min_samples_split": {'values': [2, 5, 10]},
-    "min_samples_leaf": {'values': [1, 2, 4]},
-}
-
-sweep_config = sweep_config.copy()
-sweep_config['parameters'] = parameters
-
-model="random_forest_model"
-project = model
-sweep_id = wandb.sweep(sweep_config, project=project)
-
-
-with open("scripts/sweep/template.py", "r") as f:
-    template = f.read()
-
-code = template.format(
-    model=model,
-    sweep_id=sweep_id,
-    project=project
+model = RandomForestClassifier(
+    n_estimators=int(cfg.n_estimators),
+    max_depth=None if cfg.max_depth is None else int(cfg.max_depth),
+    min_samples_split=int(cfg.min_samples_split),
+    min_samples_leaf=int(cfg.min_samples_leaf),
+    random_state=42,
 )
-## create a bat file in scripts/sweep/logistic.bat to run the sweep
-with open("scripts/sweep/random_forest.py", "w") as f:
-    f.write(code)
+
+groups = df_ML_train["id"].values
+kf = GroupKFold(n_splits=num_folds, shuffle=True, random_state=42)
+cross_val_results = cross_val_score(model, x_train, y_train, cv=kf, groups=groups)
+
+mean_auc = float(cross_val_results.mean())
+
+wandb.log({"val_auc": mean_auc, "wandb_config": wandb_config})

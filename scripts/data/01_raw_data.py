@@ -8,6 +8,7 @@ from modules.read_data import read_data
 from modules.data_management import manage_data
 from modules.feature_extraction import convert_to_features
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 df_raw1 = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 df_raw2 = read_data('data/FR1 vs EXT 09_25')
@@ -50,21 +51,31 @@ row_test = df[df['id'].isin(test_ids)].reset_index()
 # feature dataset 
 
 params = {
-    "distance":19,
-    "height":26,
+    "distance":28,
+    "height":2,
     "plateau_size":None,
-    "prominence":0.4,
-    "rel_height":1,
+    "prominence":2.6,
+    "rel_height":0.8,
     "threshold":None,
-    "width":5,
+    "width":12,
     "wlen":None
 }
 
 x = convert_to_features(df, params=params) 
-
-
 feature_names = x.columns.tolist()
-df_ML = pd.concat([df[['id', 'category', 'data']], x], axis=1)
+
+# exclude sex
+x_no_sex = x.drop(columns=['sex'])
+std_feature_names = x_no_sex.columns.tolist()
+# standardize all features
+scaler = StandardScaler()
+scaler.fit(x_no_sex) 
+x_scaled = scaler.transform(x_no_sex)
+# convert back to dataframe
+x_scaled = pd.DataFrame(x_scaled, columns=std_feature_names)
+
+
+df_ML = pd.concat([df[['id', 'category', 'data']], x_scaled, x[['sex']]], axis=1)
 df_ML['category'] = df_ML['category'].astype('category')
 df_ML['category'] = df_ML['category'].cat.reorder_categories(['FR1', 'EXT'], ordered=True)
 df_ML['label'] = df_ML['category'].cat.codes
@@ -103,6 +114,9 @@ with open(f'{output_base}/df_raw2.pkl', 'wb') as f:
 with open(f'{output_base}/df_raw.pkl', 'wb') as f:
     pickle.dump(df_raw, f)
 
+
+with open(f"{output_base}/scaler.pkl", "wb") as f:
+    pickle.dump(scaler, f)
 
 # with open(f'{output_base}/df_barpress_train.pkl', 'wb') as f:
 #     pickle.dump(df_barpress_train, f)
