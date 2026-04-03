@@ -4,11 +4,11 @@
 REM test single sweep
 set PYTHONPATH=%CD%
 python scripts\sweep_params\sweep_params_peak.py
-wandb agent szwjf08-utmb/rat-model-peaks/i8ofx30o
+wandb agent szwjf08-utmb/rat-model-lg/7hd2ctwm
+
 
 REM run multiple wandb agents in parallel
-set PYTHONPATH=%CD%
-call scripts/sweep_params/parallel_sweep.bat 12 szwjf08-utmb/rat-model-peaks/n74fgezn
+python scripts/sweep_params/parallel_sweep.py --num-proc 2 --agent-path szwjf08-utmb/rat-model-peaks/7hd2ctwm
 
 
 
@@ -20,7 +20,7 @@ wandb agent szwjf08-utmb/rat-model-lg/7l1eacb5
 
 REM run multiple wandb agents in parallel
 set PYTHONPATH=%CD%
-call scripts/sweep_params/parallel_sweep.bat 12 szwjf08-utmb/rat-model-lg/7l1eacb5
+python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-lg/7l1eacb5
 
 
 
