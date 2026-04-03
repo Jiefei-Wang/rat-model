@@ -16,22 +16,19 @@ python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08
 REM Logistic Regression sweep
 set PYTHONPATH=%CD%
 python scripts\sweep_params\sweep_params_lg.py
-wandb agent szwjf08-utmb/rat-model-lg/oykt6i8g
+wandb agent szwjf08-utmb/rat-model-lg/obw5t7md
 
 REM run multiple wandb agents in parallel
 set PYTHONPATH=%CD%
-python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-lg/oykt6i8g
+python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-lg/obw5t7md
 
+REM https://wandb.ai/szwjf08-utmb/rat-model-lg/sweeps/obw5t7md?nw=nwuserszwjf08
 
 
 
 REM GRU
 set PYTHONPATH=%CD%
 python scripts\sweep_params\sweep_params_gru.py
-wandb agent szwjf08-utmb/rat-model-gru/l95e7qt4
+wandb agent szwjf08-utmb/rat-model-gru/ddkuefen
 
-
-REM kill parallel wandb agents
-wmic process where "CommandLine like '%wandb agent%'" delete
-taskkill /F /FI "WINDOWTITLE eq wandb_agent_*"
-
+python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-gru/ddkuefen
