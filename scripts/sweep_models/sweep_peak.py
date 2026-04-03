@@ -51,7 +51,14 @@ features_list = scaler.transform(features_list)
 gb = GradientBoostingClassifier(random_state=42)
 groups = row_train['id'].values
 kf = GroupKFold(n_splits=num_folds, shuffle=True, random_state=42)  
-cross_val_results = cross_val_score(gb, features_list, y_all, cv=kf, groups=groups)
+cross_val_results = cross_val_score(
+    gb,
+    features_list,
+    y_all,
+    cv=kf,
+    groups=groups,
+    scoring="roc_auc",
+)
 mean_auc = float(cross_val_results.mean())
 wandb.log({"val_auc": mean_auc, 'wandb_config': wandb_config})
 

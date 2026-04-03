@@ -1,26 +1,11 @@
 
 
-
-REM test single sweep
-set PYTHONPATH=%CD%
-python scripts\sweep_params\sweep_params_peak.py
-wandb agent szwjf08-utmb/rat-model-lg/7hd2ctwm
-
-
-REM run multiple wandb agents in parallel
-python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-peaks/7hd2ctwm
-
-
-
-
 REM Logistic Regression sweep
 set PYTHONPATH=%CD%
 python scripts\sweep_params\sweep_params_lg.py
-wandb agent szwjf08-utmb/rat-model-lg/obw5t7md
+wandb agent szwjf08-utmb/rat-model-lg/q2bfohl8
 
-REM run multiple wandb agents in parallel
-set PYTHONPATH=%CD%
-python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-lg/obw5t7md
+python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-lg/q2bfohl8
 
 REM https://wandb.ai/szwjf08-utmb/rat-model-lg/sweeps/obw5t7md?nw=nwuserszwjf08
 

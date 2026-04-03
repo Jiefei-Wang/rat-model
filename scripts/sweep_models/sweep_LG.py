@@ -36,8 +36,14 @@ else:
 
 groups = df_ML_train['id'].values
 kf = GroupKFold(n_splits=num_folds, shuffle=True, random_state=42)  
-cross_val_results = cross_val_score(model, x_train, y_train, cv=kf, groups=groups)
-
+cross_val_results = cross_val_score(
+    model,
+    x_train,
+    y_train,
+    cv=kf,
+    groups=groups,
+    scoring="roc_auc",
+)
 mean_auc = float(cross_val_results.mean())
 
 wandb.log({"val_auc": mean_auc, 'wandb_config': wandb_config})
