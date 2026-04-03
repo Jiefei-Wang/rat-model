@@ -1,6 +1,6 @@
 import wandb
 
-project = "rat-model-LG"
+project = "rat-model-lg"
 
 sweep_config = {
     "method": "grid",
