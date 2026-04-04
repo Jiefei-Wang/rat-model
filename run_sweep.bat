@@ -13,9 +13,9 @@ REM https://wandb.ai/szwjf08-utmb/rat-model-lg/sweeps/q2bfohl8?nw=nwuserszwjf08
 REM GB
 set PYTHONPATH=%CD%
 python scripts\sweep_params\sweep_params_gb.py
-wandb agent szwjf08-utmb/rat-model-gb/rjrw7azj
+wandb agent szwjf08-utmb/rat-model-gb/cubycooo
 
-python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-gb/rjrw7azj
+python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-gb/cubycooo
 
 
 
