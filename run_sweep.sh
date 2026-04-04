@@ -1,11 +1,19 @@
 # test single sweep
 export PYTHONPATH="$PWD"
-python scripts/sweep_params/sweep_params_peak.py
-wandb agent szwjf08-utmb/rat-model-peaks/7hd2ctwm
-
-python scripts/sweep_params/parallel_sweep.py --num-proc 8 --agent-path szwjf08-utmb/rat-model-peaks/7hd2ctwm
+python scripts/sweep_params/sweep_params_lg.py
+wandb agent szwjf08-utmb/rat-model-lg/q2bfohl8
 
 
+export PYTHONPATH="$PWD"
+python scripts/sweep_params/parallel_sweep.py --num-proc 8 --agent-path szwjf08-utmb/rat-model-lg/q2bfohl8
 
-# random forest
-python scripts/sweep_params/sweep_params_RF.py
+
+# GB
+export PYTHONPATH="$PWD"
+python scripts/sweep_params/sweep_params_gb.py
+wandb agent szwjf08-utmb/rat-model-gb/d0xgnoni
+
+export PYTHONPATH="$PWD"
+python scripts/sweep_params/parallel_sweep.py --num-proc 8 --agent-path szwjf08-utmb/rat-model-gb/d0xgnoni
+
+
