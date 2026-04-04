@@ -8,14 +8,19 @@ sweep_config = {
     "program": "scripts.sweep_models.sweep_GB",
     "command": ["${env}", "${interpreter}", "-m", "${program}"],
 }
-
 parameters = {
-    "n_estimators": {"values": [i for i in range(10, 201, 10)]},
-    "subsample": {"values": [i * 0.1 for i in range(1, 11)]},
-    "max_depth": {"values": [i for i in range(10, 201, 10)]},
-    "min_samples_split": {"values": [2, 5, 10]},
-    "min_samples_leaf": {"values": [1, 2, 4]},
+    # include shallow->deep transitions
+    "max_depth": {"values": [1, 2, 3, 4, 6, 8]},              
+    # fine near low values + stronger regularization
+    "min_child_weight": {"values": [1, 2, 3, 5, 8]},  
+    # low/mid/high sampling        
+    "subsample": {"values": [0.6, 0.75, 0.9, 1.0]},     
+    # feature sampling sensitivity      
+    "colsample_bytree": {"values": [0.6, 0.75, 0.9, 1.0]},
+    # weak/default/strong L2    
+    "reg_lambda": {"values": [0.1, 1.0, 10.0]},               
 }
+
 sweep_config["parameters"] = parameters
 
 sweep_id = wandb.sweep(sweep=sweep_config, project=project)

@@ -75,6 +75,9 @@ x_scaled = scaler.transform(x_no_sex)
 x_scaled = pd.DataFrame(x_scaled, columns=std_feature_names)
 
 
+df_ML_unscaled = pd.concat([df[['id', 'category', 'data']], x], axis=1)
+
+
 df_ML = pd.concat([df[['id', 'category', 'data']], x_scaled, x[['sex']]], axis=1)
 df_ML['category'] = df_ML['category'].astype('category')
 df_ML['category'] = df_ML['category'].cat.reorder_categories(['FR1', 'EXT'], ordered=True)
@@ -117,6 +120,9 @@ with open(f'{output_base}/df_raw.pkl', 'wb') as f:
 
 with open(f"{output_base}/scaler.pkl", "wb") as f:
     pickle.dump(scaler, f)
+
+with open(f"{output_base}/df_ML_unscaled.pkl", "wb") as f:
+    pickle.dump(df_ML_unscaled, f)
 
 # with open(f'{output_base}/df_barpress_train.pkl', 'wb') as f:
 #     pickle.dump(df_barpress_train, f)
