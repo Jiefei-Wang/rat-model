@@ -34,6 +34,11 @@ def collapse_zeros_alike(data, threshold=1):
     
     return output
 
+def remove_trailing_zeros(lst):
+    while lst and lst[-1] <=0:
+        lst.pop()
+    return lst
+
 
 def extractData(file_path):
     data = []
@@ -56,9 +61,6 @@ def extractData(file_path):
             if len(parts) > 1:
                 numbers = parts[1:]
                 data.extend(map(float, numbers))
-
-    ## Remove excessive zeros
-    data = collapse_zeros_alike(data)
     return data
 
 def filter_low_force(data): 
@@ -156,15 +158,17 @@ def mask_constant_values(data):
 
 def process_file(file_path):
     raw_data = extractData(file_path)
-    # set low force values to 0
-    data, low_force_mask = filter_low_force(raw_data)
+    # remove low force
+    no_low_force_data = [x if x >= low_force_threshold else 0 for x in raw_data]
+    collapsed_data = remove_trailing_zeros(no_low_force_data)
+    collapsed_data = collapse_zeros_alike(collapsed_data)
     # To bar press data: list of lists
-    bar_presses, bar_press_mask, bar_press_index = to_bar_press(data)
+    bar_presses, bar_press_mask, bar_press_index = to_bar_press(collapsed_data)
     # If a bar press has constant values, remove it
     constant_value_masks = [mask_constant_values(press) for press in bar_presses]
     bar_presses_filtered = [press for press, mask in zip(bar_presses, constant_value_masks) if not mask[0]]
     bar_presses_filtered_index = [index for index, mask in zip(bar_press_index, constant_value_masks) if not mask[0]]
-    return bar_presses_filtered, bar_presses_filtered_index, raw_data, low_force_mask, bar_presses, bar_press_mask, bar_press_index, constant_value_masks
+    return bar_presses_filtered, bar_presses_filtered_index, raw_data, collapsed_data, bar_presses, bar_press_mask, bar_press_index, constant_value_masks
 
 def list_all_files(PATH):
     """
@@ -195,7 +199,7 @@ def read_category_data(folder):
         file_path = files[i]
         ## file base name with no folder
         fileName = os.path.basename(file_path)
-        bar_presses_filtered, bar_presses_filtered_index, raw_data, low_force_mask, bar_presses, bar_press_mask, bar_press_index, constant_value_masks = process_file(file_path)
+        bar_presses_filtered, bar_presses_filtered_index, raw_data, collapsed_data, bar_presses, bar_press_mask, bar_press_index, constant_value_masks = process_file(file_path)
         
         rat_identifier = file_path.split('Subject ')[1]
         ## get integer part of the rat id
@@ -213,7 +217,7 @@ def read_category_data(folder):
             'data': bar_presses_filtered,
             'data_index': bar_presses_filtered_index,
             'raw_data': raw_data,
-            'low_force_mask': low_force_mask,
+            'collapsed_data': collapsed_data,
             'raw_bar_press': bar_presses,
             'raw_bar_press_mask': bar_press_mask,
             'raw_bar_press_index': bar_press_index,

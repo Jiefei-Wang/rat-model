@@ -5,10 +5,9 @@ import os, pickle, argparse
 from types import SimpleNamespace
 import numpy as np
 import pandas as pd
-from scipy.signal import find_peaks,  peak_widths
-from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import GroupKFold, cross_val_score
 from sklearn.preprocessing import StandardScaler
+import xgboost as xgb
 import wandb
 
 from modules.feature_extraction import calculate_peak_vally_features
@@ -48,7 +47,10 @@ scaler.fit(features_list)
 features_list = scaler.transform(features_list)
 
 # k-fold cross validation
-gb = GradientBoostingClassifier(random_state=42)
+gb = xgb.XGBClassifier(
+    tree_method="hist",
+    random_state=42
+)
 groups = row_train['id'].values
 kf = GroupKFold(n_splits=num_folds, shuffle=True, random_state=42)  
 cross_val_results = cross_val_score(

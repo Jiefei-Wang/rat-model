@@ -40,6 +40,7 @@ model = xgb.XGBClassifier(
     colsample_bytree=float(cfg.colsample_bytree),
     reg_lambda=float(cfg.reg_lambda),
     tree_method="hist",
+    random_state=42
 )
 
     
