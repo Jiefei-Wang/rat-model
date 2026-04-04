@@ -3,7 +3,7 @@ import wandb
 project = "rat-model-gb"
 
 sweep_config = {
-    "method": "bayes",
+    "method": "grid",
     "metric": {"goal": "maximize", "name": "val_auc"},
     "program": "scripts.sweep_models.sweep_GB",
     "command": ["${env}", "${interpreter}", "-m", "${program}"],
