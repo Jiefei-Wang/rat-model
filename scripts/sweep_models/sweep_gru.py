@@ -24,10 +24,10 @@ use_features = wandb_config.get('use_features', True)
 epochs = wandb_config.get('epochs', 1000)
 
 df_ML_train = pickle.load(open(os.path.join(output_base, "df_ML_train.pkl"), "rb"))
-feature_names = pickle.load(open(os.path.join(output_base, "feature_names.pkl"), "rb"))
+ML_feature_names = pickle.load(open(os.path.join(output_base, "ML_feature_names.pkl"), "rb"))
 
 
-x_train = df_ML_train[feature_names].values
+x_train = df_ML_train[ML_feature_names].values
 y_train = df_ML_train['category'].values
 
 
@@ -38,8 +38,8 @@ train_ids, valid_ids = train_test_split(unique_ids, test_size=0.1, random_state=
 nn_train0 = df_ML_train[df_ML_train['id'].isin(train_ids)].reset_index(drop=True)[['label', 'data']]
 nn_valid = df_ML_train[df_ML_train['id'].isin(valid_ids)].reset_index(drop=True)[['label', 'data']]
 if use_features:
-    features_train = df_ML_train[df_ML_train['id'].isin(train_ids)].reset_index(drop=True)[feature_names]
-    features_valid = df_ML_train[df_ML_train['id'].isin(valid_ids)].reset_index(drop=True)[feature_names]
+    features_train = df_ML_train[df_ML_train['id'].isin(train_ids)].reset_index(drop=True)[ML_feature_names]
+    features_valid = df_ML_train[df_ML_train['id'].isin(valid_ids)].reset_index(drop=True)[ML_feature_names]
     feature_size = features_train.shape[1]
 else:
     features_train = None

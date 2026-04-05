@@ -13,7 +13,7 @@ sweep_config = {
 parameters = {
     "hidden_size" : {'values': [4,8,16,32,64, 128, 256, 384]},
     "num_layers" : {'values': [1,2,3,4,5,6]},
-    "use_features" : {'values': [True, False]},
+    "use_features" : {'values': [False]},
     "epochs" : {'value': 10000},
 }
 

@@ -64,6 +64,11 @@ params = {
 x = convert_to_features(df, params=params) 
 feature_names = x.columns.tolist()
 
+ML_feature_names = ['total_press_duration', 'max_force', 'pk_widths_max', 'pk_widths_mean', 'pk_widths_min',  'pk_sharp_mean', 'pk_sharp_min', 'skewness', 'kurtosis', 'avg_first_5', 'avg_last_5', 'sex']
+
+assert set(ML_feature_names).issubset(set(feature_names)), "Some ML feature names are not in the extracted feature names."
+
+
 # exclude sex
 x_no_sex = x.drop(columns=['sex'])
 std_feature_names = x_no_sex.columns.tolist()
@@ -146,5 +151,8 @@ with open(f'{output_base}/df_ML_test.pkl', 'wb') as f:
 
 with open(f'{output_base}/feature_names.pkl', 'wb') as f:
     pickle.dump(feature_names, f)
+    
+with open(f'{output_base}/ML_feature_names.pkl', 'wb') as f:
+    pickle.dump(ML_feature_names, f)
 
     

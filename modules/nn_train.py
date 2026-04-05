@@ -111,7 +111,7 @@ def big_train_loop(model,
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    stopper = EarlyStopper(patience=500, min_delta=0)
+    stopper = EarlyStopper(patience=50, min_delta=0)
     
     base_path = tempfile.mkdtemp()
     os.makedirs(base_path, exist_ok=True)

@@ -159,9 +159,9 @@ def mask_constant_values(data):
 def process_file(file_path):
     raw_data = extractData(file_path)
     # remove low force
-    no_low_force_data = [x if x >= low_force_threshold else 0 for x in raw_data]
-    collapsed_data = remove_trailing_zeros(no_low_force_data)
-    collapsed_data = collapse_zeros_alike(collapsed_data)
+    raw_data = [x if x >= low_force_threshold else 0 for x in raw_data]
+    raw_data = remove_trailing_zeros(raw_data)
+    collapsed_data = collapse_zeros_alike(raw_data)
     # To bar press data: list of lists
     bar_presses, bar_press_mask, bar_press_index = to_bar_press(collapsed_data)
     # If a bar press has constant values, remove it
