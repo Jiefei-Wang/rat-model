@@ -205,8 +205,11 @@ def read_category_data(folder):
         ## get integer part of the rat id
         id = int(''.join(filter(str.isdigit, rat_identifier)))
         ## sex
-        sex = ''.join(filter(str.isalpha, rat_identifier))
-        ## F,M to 0,1
+        sex = ''.join(filter(str.isalpha, rat_identifier)).upper()
+        ## Default missing suffix to male
+        if sex == '':
+            sex = 'M'
+        ## F,M to 0,1 (non-M falls back to 0)
         sex = 1 if sex == 'M' else 0
         ## combine the data
         rat = {

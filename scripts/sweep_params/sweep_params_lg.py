@@ -10,7 +10,7 @@ sweep_config = {
 }
 
 parameters = {
-    "C" : {'values': [i * 0.01 for i in range(1, 100)]}
+    "C" : {'values': [i * 0.001 for i in range(1, 200)]}
 }
 sweep_config['parameters'] = parameters
 
