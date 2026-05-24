@@ -5,7 +5,7 @@ import pandas as pd
 
 from read_data import read_data
 from modules.data_management import chunk_data, truncate_data
-from modules.feature_extraction import convert_to_features
+from modules.feature_extraction import extract_barpress_features
 from model import logistic_model, random_forest_model, gradient_boosting_model, cross_validate_auc
 
 
@@ -21,7 +21,7 @@ chunk_size_list = range(1, 21)
 for chunk_size in chunk_size_list:
     print(f'Chunk size: {chunk_size}')
     df3 = chunk_data(df2, chunk_size) 
-    X,y = convert_to_features(df3)
+    X,y = extract_barpress_features(df3)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     average_auc_log = cross_validate_auc(logistic_model, X, y, n_splits)
     average_auc_tree = cross_validate_auc(random_forest_model, X, y, n_splits)

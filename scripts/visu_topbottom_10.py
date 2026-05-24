@@ -5,7 +5,7 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 from modules.read_data import read_data
 from modules.data_management import manage_data
-from modules.feature_extraction import convert_to_features
+from modules.feature_extraction import extract_barpress_features
 import shutil
 
 # Define output path
@@ -33,7 +33,7 @@ df2.columns
 #        'raw_bar_press_index', 'constant_value_masks']
 
 ## turn data into features
-X,y = convert_to_features(df2)
+X,y = extract_barpress_features(df2)
 
 ## combind df2 and X
 df3 = pd.concat([df2, X], axis=1)

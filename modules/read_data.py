@@ -42,7 +42,11 @@ def extract_raw_data(file_path):
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
+    subject_id = None
     for line in lines:
+        # format: Subject: xx
+        if "Subject:" in line:
+            subject_id = line.split("Subject:")[1].strip()
         if "P:" in line:
             start_processing = True
             continue
@@ -57,16 +61,18 @@ def extract_raw_data(file_path):
                 numbers = parts[1:]
                 data.extend(map(float, numbers))
     
-    # Remove trailing zeros
-    while data and data[-1] == 0:
-        data.pop()
-        
-    return data
-
-def filter_low_force(data): 
-    mask = [x < low_force_threshold for x in data]
+    
+    low_force_mask = [x < low_force_threshold for x in data]
     new_data = [x if x >= low_force_threshold else 0 for x in data]
-    return new_data, mask
+    # Remove trailing zeros
+    while new_data and new_data[-1] == 0:
+        new_data.pop()
+        low_force_mask.pop()
+    
+    if subject_id is None:
+        raise ValueError(f"Subject ID not found in file: {file_path}")
+    return subject_id, new_data, low_force_mask
+
 
 def to_bar_press(data):
     bar_presses = []
@@ -109,72 +115,31 @@ def mask_constant_values(data):
     """
     n = len(data)
     i = 0
-    while i < n:
-        # We'll consider a potential "constant" segment starting at index i
-        start_val = data[i]
+    while i < n - constant_run_threshold + 1:
+        end_idx = i + constant_run_threshold
         
-        ## If the value is 0, skip
-        if start_val == 0:
-            i += 1
-            continue
+        seq_data = data[i:end_idx]
+        data_range = max(seq_data) - min(seq_data)
+        if data_range <= 2 * constant_force_threshold:
+            return True, [i, end_idx]
         
-        current_min = start_val
-        current_max = start_val
+        i += 1  # Move to the next index and check again
         
-        j = i
-        # Try to extend the segment until we exceed the threshold
-        while j < n:
-            val = data[j]
-            
-            ## If the value is 0, stop
-            if val == 0:
-                break
-
-            potential_min = min(current_min, val)
-            potential_max = max(current_max, val)
-            
-            if (potential_max - potential_min) <= 2 * constant_force_threshold:
-                # Update current_min and current_max because we can include val
-                current_min, current_max = potential_min, potential_max
-                j += 1
-            else:
-                # We exceeded the allowed variation, so break
-                break
-        
-        # Now, j is just past the end of the potential constant segment
-        run_length = j - i
-        
-        # If run is long enough, set all those elements to 0
-        if run_length >= constant_run_threshold:
-            return True, [i, j]
-        
-        # Jump i past this entire segment 
-        # Ideally we should increment i by 1
-        # we do this for simplicity
-        i = j
-    
     return False, None
 
 
-def process_file(file_path):
-    raw_data = extract_raw_data(file_path)
-    return process_raw_data(raw_data)
 
 
 def process_raw_data(raw_data):
-    ## Remove excessive zeros
-    # raw_data_no_zeros = collapse_zeros_alike(raw_data)
-    # set low force values to 0
-    data, low_force_mask = filter_low_force(raw_data)
     # To bar press data: list of lists
-    bar_presses, bar_press_mask, bar_press_index = to_bar_press(data)
+    bar_presses, bar_press_mask, bar_press_index = to_bar_press(raw_data)
     # If a bar press has constant values, remove it
     constant_value_masks = [mask_constant_values(press) for press in bar_presses]
     bar_presses_filtered = [press for press, mask in zip(bar_presses, constant_value_masks) if not mask[0]]
     bar_presses_filtered_index = [index for index, mask in zip(bar_press_index, constant_value_masks) if not mask[0]]
     bar_presses_constant = [press for press, mask in zip(bar_presses, constant_value_masks) if mask[0]]
     bar_presses_constant_index = [index for index, mask in zip(bar_press_index, constant_value_masks) if mask[0]]
-    return bar_presses_filtered, bar_presses_filtered_index, low_force_mask, bar_press_mask, bar_presses_constant, bar_presses_constant_index, constant_value_masks
+    return bar_presses_filtered, bar_presses_filtered_index, bar_press_mask, bar_presses_constant, bar_presses_constant_index, constant_value_masks
 
 
 
@@ -184,14 +149,13 @@ def process_raw_datas(raw_data_list):
     for i in tqdm(range(len(raw_data_list))):
         raw_data = raw_data_list[i]
         ## file base name with no folder
-        bar_presses_filtered, bar_presses_filtered_index, low_force_mask, bar_press_mask, bar_presses_constant, bar_presses_constant_index, constant_value_masks = process_raw_data(raw_data)
+        bar_presses_filtered, bar_presses_filtered_index, bar_press_mask, bar_presses_constant, bar_presses_constant_index, constant_value_masks = process_raw_data(raw_data)
         
         ## combine the data
         rat = {
             'data': bar_presses_filtered,
             'data_index': bar_presses_filtered_index,
             'raw_data': raw_data,
-            'low_force_mask': low_force_mask,
             'bar_presses_constant': bar_presses_constant,
             'raw_bar_press_mask': bar_press_mask,
             'bar_presses_constant_index': bar_presses_constant_index,
@@ -211,7 +175,8 @@ def list_all_files(PATH):
     files_path = []
     for root, subFolder, all_files in os.walk(PATH):
         for item in all_files:
-            if "Subject" in item:
+            subject_tail = item.split("Subject ", 1)[-1]
+            if "Subject" in item and "." not in subject_tail:
                 fileNamePath = str(os.path.join(root, item))
                 files_path += [fileNamePath]
     return files_path
@@ -232,23 +197,21 @@ def read_category_data(folder):
     raw_data_list = []
     id_list = []
     file_name_list = []
+    low_force_mask_list = []
     for i in tqdm(range(len(files))):
         file_path = files[i]
         ## file base name with no folder
         fileName = os.path.basename(file_path)
-        raw_data = extract_raw_data(file_path)
+        subject_id, raw_data, low_force_mask = extract_raw_data(file_path)
         raw_data_list += [raw_data]
-        
-        # extract the rat meta from the file name
-        rat_identifier = file_path.split('Subject ')[1]
-        ## get integer part of the rat id
-        id = int(''.join(filter(str.isdigit, rat_identifier)))
-        id_list += [id]
+        id_list += [subject_id]
         file_name_list += [fileName]
+        low_force_mask_list += [low_force_mask]
     
     df_meta = pd.DataFrame({
         'id': id_list,
-        'file_name': file_name_list
+        'file_name': file_name_list,
+        'low_force_mask': low_force_mask_list
     })
     
     df_data = process_raw_datas(raw_data_list)
@@ -264,8 +227,6 @@ def read_cohort_type1(data_root):
     """
     Read data from the data root folder and return a data frame
     """
-    ## list folders within the data folder
-    folders = os.listdir(data_root)
     ## folders only
     folders = [str(f) for f in Path(data_root).iterdir() if f.is_dir()]
     
@@ -281,7 +242,7 @@ def read_cohort_type1(data_root):
     return df
 
 
-def read_cohort_2(path, time_cutoff = 5*60*100):
+def read_cohort_type2(path, time_cutoff = 5*60*100):
     """
     Read data from the cohort 2 folder and return a data frame
     folder name format: {data_category}/*/{data_file}
@@ -295,29 +256,30 @@ def read_cohort_2(path, time_cutoff = 5*60*100):
     id_list = []
     file_name_list = []
     category_list = []
+    low_force_mask_list = []
     for i in tqdm(range(len(files))):
         file_path = files[i]
         ## file base name with no folder
         fileName = os.path.basename(file_path)
-        raw_data = extract_raw_data(file_path)
+        subject_id, raw_data, low_force_mask = extract_raw_data(file_path)
         raw_data_fr1 = raw_data[:time_cutoff]
         raw_data_ext = raw_data[time_cutoff:]
+        low_force_mask_fr1 = low_force_mask[:time_cutoff]
+        low_force_mask_ext = low_force_mask[time_cutoff:]
         
         
         raw_data_list += [raw_data_fr1, raw_data_ext]
+        low_force_mask_list += [low_force_mask_fr1, low_force_mask_ext]
         
-        # extract the rat meta from the file name
-        rat_identifier = file_path.split('Subject ')[1]
-        ## get integer part of the rat id
-        id = int(''.join(filter(str.isdigit, rat_identifier)))
-        id_list += [id, id]
+        id_list += [subject_id, subject_id]
         file_name_list += [fileName, fileName]
         category_list += ['FR1', 'EXT']
     
     df_meta = pd.DataFrame({
         'id': id_list,
         'file_name': file_name_list,
-        'category': category_list
+        'category': category_list,
+        'low_force_mask': low_force_mask_list
     })
     
     df_data = process_raw_datas(raw_data_list)

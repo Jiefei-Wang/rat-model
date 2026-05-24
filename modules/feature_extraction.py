@@ -81,7 +81,7 @@ def calculate_avg_last_5(x, params):
     return np.mean(x[-5:])
 
 # Feature extraction function
-def convert_to_features(df, params={}):
+def extract_barpress_features(df, params={}):
     
     ## name and function mapping    
     feature_list = {
@@ -109,6 +109,4 @@ def convert_to_features(df, params={}):
             
     feature_df2 = pd.DataFrame(feature_df)
 
-    feature_df2['sex'] = df['sex']
-        
     return feature_df2

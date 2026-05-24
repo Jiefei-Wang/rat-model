@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from modules.data_management import manage_data
 from modules.nn_models import GRUModel
 from modules.read_data import read_data
-from modules.feature_extraction import convert_to_features
+from modules.feature_extraction import extract_barpress_features
 
 # === Parameters ===
 truncate_size = 3
@@ -24,7 +24,7 @@ df_all = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
 file_for_test = "18h31m.Subject 22F"
 df_all_exclude_text = df_all[~df_all['file'].str.contains(file_for_test, na=False)]
 df_all_processed = manage_data(df_all_exclude_text, truncate_size, chunk_size, max_press, standardize)
-X_all, y_all = convert_to_features(df_all_processed)
+X_all, y_all = extract_barpress_features(df_all_processed)
 
 # === Map labels: EXT = 0 (frustration), FR1 = 1 ===
 label_map = {'EXT': 0, 'FR1': 1}
@@ -37,7 +37,7 @@ rf.fit(X_all, y_all)
 # === Preprocess Subject 10M for testing ===
 df_subject = df_all[df_all['file'].str.contains(file_for_test, na=False)]
 df_subject_processed = manage_data(df_subject, truncate_size, chunk_size, max_press, standardize)
-X_subject_rf, _ = convert_to_features(df_subject_processed)
+X_subject_rf, _ = extract_barpress_features(df_subject_processed)
 
 # === Predict EXT probabilities using RF (class 0 = EXT) ===
 rf_probs = rf.predict_proba(X_subject_rf)[:, 0]

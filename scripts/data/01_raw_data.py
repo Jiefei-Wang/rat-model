@@ -4,27 +4,41 @@ import os
 import pandas as pd
 import numpy as np
 
-from modules.read_data import read_category_data, read_cohort_type1
+from modules.read_data import  read_cohort_type1, read_cohort_type2
 from modules.data_management import manage_data
-from modules.feature_extraction import convert_to_features
+from modules.feature_extraction import extract_barpress_features
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 df_raw1 = read_cohort_type1('data/cohort1')
-df_raw2 = read_category_data('data/cohort2/WS EXT')
+df_raw2 = read_cohort_type2('data/cohort2/WS EXT')
 df_raw3 = read_cohort_type1('data/cohort3')
-df_raw2.id = df_raw2.id + 2000
-df_raw3.id = df_raw3.id + 3000
+df_raw1['cohort'] = 1
+df_raw2['cohort'] = 2
+df_raw3['cohort'] = 3
+df_raw1['rat_type'] = "sprague-dawley"
+df_raw2['rat_type'] = "sprague-dawley"
+df_raw3['rat_type'] = "long-evans"
+
 
 df_raw = pd.concat([df_raw1, df_raw2, df_raw3], axis=0).reset_index(drop=True)
 
-df_raw.columns
+rat_meta = pd.read_excel("data/Profiling-Weights_age_sex.xlsx")
+rat_meta['id'] = rat_meta['id'].astype(str)
+rat_meta['cohort'] = rat_meta['cohort'].astype(int)
 
+df_raw = df_raw.merge(rat_meta, on=['id', 'cohort'], how='inner')
+# reset id so that different cohorts have different id spaces
+df_raw = df_raw.rename(columns={'id': 'within_cohort_id'})
+df_raw['id'] = "C" + df_raw['cohort'].astype(str) + ":" + df_raw['within_cohort_id'].astype(str)
+
+
+df_raw.columns
 len(df_raw)
-# 142 recordings
+# 186 recordings
 
 truncate_size = 3
-max_press = 1000
+max_press = 400
 standardize = False
 min_press_len = 10
 df = manage_data(df_raw, 
@@ -33,19 +47,23 @@ df = manage_data(df_raw,
                   standardize=standardize,
                   min_press_len=min_press_len)
 len(df)
-# 23153 bar presses
+# 27360 bar presses
+
+# recode: M=1, F=0
+df['sex'] = df['sex'].map({'M': 1, 'F': 0})
+df['rat_type'] = df['rat_type'].map({'long-evans': 1, 'sprague-dawley': 0})
 
 rat_ids = df['id'].unique().tolist()
 len(rat_ids)
-# 41 rats
+# 63 rats
 
 # keep n_test rats for testing
-n_test = 5
+n_test = 10
 train_ids, test_ids = train_test_split(rat_ids, test_size=n_test, random_state=42)
 
 # basic df data split
-row_train = df[df['id'].isin(train_ids)].reset_index()
-row_test = df[df['id'].isin(test_ids)].reset_index()
+row_train = df[df['id'].isin(train_ids)].reset_index(drop=True)
+row_test = df[df['id'].isin(test_ids)].reset_index(drop=True)
 (len(row_train), len(row_test))
 # (19749, 3404)
 
@@ -66,59 +84,40 @@ params = {
     "wlen":None
 }
 
-x = convert_to_features(df, params=params) 
+x = extract_barpress_features(df, params=params) 
+
+barpress_features_names = ['total_press_duration', 'max_force', 'pk_widths_max', 'pk_widths_mean', 'pk_widths_min',  'pk_sharp_mean', 'pk_sharp_min', 'skewness', 'kurtosis', 'avg_first_5', 'avg_last_5']
+
+assert set(barpress_features_names).issubset(set(x.columns.tolist())), "Some ML feature names are not in the extracted feature names."
 
 
-# for all features, standardize them by z-score across the dataset
-features = ['total_press_duration', 'max_force', 'pk_num', 'pk_widths_max', 'pk_widths_mean', 'pk_widths_min', 'pk_sharp_max', 'pk_sharp_mean', 'pk_sharp_min', 'skewness', 'kurtosis', 'force_variation_rate', 'avg_first_5', 'avg_last_5']
-
-assert len(features) == x.shape[1]-1, "Number of features does not match the number of columns in x (excluding id)."
-
-x[features] = (x[features] - x[features].mean()) / x[features].std()
-
-
-
-feature_names = x.columns.tolist()
-
-ML_feature_names = ['total_press_duration', 'max_force', 'pk_widths_max', 'pk_widths_mean', 'pk_widths_min',  'pk_sharp_mean', 'pk_sharp_min', 'skewness', 'kurtosis', 'avg_first_5', 'avg_last_5', 'sex']
-
-assert set(ML_feature_names).issubset(set(feature_names)), "Some ML feature names are not in the extracted feature names."
-
-
-# exclude sex
-x_no_sex = x.drop(columns=['sex'])
-std_feature_names = x_no_sex.columns.tolist()
-# standardize all features
+# standardize the features
 scaler = StandardScaler()
-scaler.fit(x_no_sex) 
-x_scaled = scaler.transform(x_no_sex)
+scaler.fit(x) 
+x_scaled = scaler.transform(x)
 # convert back to dataframe
-x_scaled = pd.DataFrame(x_scaled, columns=std_feature_names)
+x_scaled = pd.DataFrame(x_scaled, columns=x.columns.tolist())
 
 
-df_ML_unscaled = pd.concat([df[['id', 'category', 'data']], x], axis=1)
+
+rat_features = ['sex', 'age', 'weight', 'rat_type']
+ML_feature_names = barpress_features_names + rat_features
 
 
-df_ML = pd.concat([df[['id', 'category', 'data']], x_scaled, x[['sex']]], axis=1)
+df_ML_unscaled = pd.concat([df[['id', 'category', 'data'] + rat_features], x], axis=1)
+df_ML = pd.concat([df[['id', 'category', 'data'] + rat_features], x_scaled], axis=1)
+
+
+
+
 df_ML['category'] = df_ML['category'].astype('category')
 df_ML['category'] = df_ML['category'].cat.reorder_categories(['FR1', 'EXT'], ordered=True)
-df_ML['label'] = df_ML['category'].cat.codes
-df_ML_train = df_ML[df_ML['id'].isin(train_ids)].reset_index()
-df_ML_test = df_ML[df_ML['id'].isin(test_ids)].reset_index()
+df_ML['label'] = df_ML['category']
+df_ML_train = df_ML[df_ML['id'].isin(train_ids)].reset_index(drop=True)
+df_ML_test = df_ML[df_ML['id'].isin(test_ids)].reset_index(drop=True)
 
 df_ML.shape
 # (23153, 19)
-
-# Train test split - 90:5:5 (train:validation:test)
-# row_train0, row_test = train_test_split(df.index, test_size=0.05, random_state=42, stratify= df[['id', 'category']])
-
-# df_tmp = df.loc[row_train0]
-# row_train, row_valid = train_test_split(row_train0, test_size=5/95, random_state=42, stratify= df_tmp[['id', 'category']])
-
-
-## Check if row_train, row_valid, row_test cover all rows
-# assert set(row_train)| set(row_valid)| set(row_test) == set(df.index), "Row splits do not cover all rows in the dataframe."
-
 
 
 
@@ -165,8 +164,8 @@ with open(f'{output_base}/df_ML_test.pkl', 'wb') as f:
     pickle.dump(df_ML_test, f)
     
 
-with open(f'{output_base}/feature_names.pkl', 'wb') as f:
-    pickle.dump(feature_names, f)
+with open(f'{output_base}/barpress_features_names.pkl', 'wb') as f:
+    pickle.dump(barpress_features_names, f)
     
 with open(f'{output_base}/ML_feature_names.pkl', 'wb') as f:
     pickle.dump(ML_feature_names, f)
