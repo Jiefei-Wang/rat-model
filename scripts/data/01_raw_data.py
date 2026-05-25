@@ -60,9 +60,18 @@ len(df)
 # recode variables
 df['sex'] = df['sex'].map({'M': 1, 'F': 0})
 df['rat_type'] = df['rat_type'].map({'long-evans': 1, 'sprague-dawley': 0})
+df['label'] = df['category'].map({'FR1': 0, 'EXT': 1})
 
 
-rat_ids = df['id'].unique().tolist()
+
+# weight by id and category. Each weight is the inverse of the number of presses for that id and category
+weights = df.groupby(['id', 'category']).size().reset_index(name='press_count')
+weights['sample_weight'] = 1 / weights['press_count']
+weights = weights[['id', 'category', 'sample_weight']]
+df = df.merge(weights, on=['id', 'category'], how='left')
+
+
+rat_ids = sorted(df['id'].unique().tolist())
 len(rat_ids)
 # 63 rats
 
@@ -71,9 +80,9 @@ n_test = 10
 train_ids, test_ids = train_test_split(rat_ids, test_size=n_test, random_state=42)
 
 # basic df data split
-row_train = df[df['id'].isin(train_ids)].reset_index(drop=True)
-row_test = df[df['id'].isin(test_ids)].reset_index(drop=True)
-(len(row_train), len(row_test))
+peak_train = df[df['id'].isin(train_ids)].reset_index(drop=True)
+peak_test = df[df['id'].isin(test_ids)].reset_index(drop=True)
+(len(peak_train), len(peak_test))
 # without time filter
 # (23116, 4244)
 # with time filter
@@ -117,20 +126,8 @@ rat_features = ['sex', 'age', 'weight', 'rat_type']
 ML_feature_names = barpress_features_names + rat_features
 
 
-df_ML_unscaled = pd.concat([df[['id', 'category', 'data', 'data_start_index', 'data_end_index', 'file_name', 'cohort'] + rat_features], x], axis=1)
-df_ML = pd.concat([df[['id', 'category', 'data', 'data_start_index', 'data_end_index', 'file_name', 'cohort'] + rat_features], x_scaled], axis=1)
-
-# weight by id and category. Each weight is the inverse of the number of presses for that id and category
-weights = df_ML.groupby(['id', 'category']).size().reset_index(name='press_count')
-weights['sample_weight'] = 1 / weights['press_count']
-weights = weights[['id', 'category', 'sample_weight']]
-df_ML = df_ML.merge(weights, on=['id', 'category'], how='left')
-df_ML_unscaled = df_ML_unscaled.merge(weights, on=['id', 'category'], how='left')
-
-
-
-df_ML['label'] = df_ML['category'].map({'FR1': 0, 'EXT': 1})
-df_ML_unscaled['label'] = df_ML_unscaled['category'].map({'FR1': 0, 'EXT': 1})
+df_ML_unscaled = pd.concat([df[['id', 'category', 'data', 'data_start_index', 'data_end_index', 'file_name', 'cohort', 'label', 'sample_weight'] + rat_features], x], axis=1)
+df_ML = pd.concat([df[['id', 'category', 'data', 'data_start_index', 'data_end_index', 'file_name', 'cohort', 'label', 'sample_weight'] + rat_features], x_scaled], axis=1)
 
 
 
@@ -150,10 +147,10 @@ if not os.path.exists(output_base):
 
 with open(f'{output_base}/df_raw1.pkl', 'wb') as f:
     pickle.dump(df_raw1, f)
-    
-
 with open(f'{output_base}/df_raw2.pkl', 'wb') as f:
     pickle.dump(df_raw2, f)
+with open(f'{output_base}/df_raw3.pkl', 'wb') as f:
+    pickle.dump(df_raw3, f)
 
 with open(f'{output_base}/df_raw.pkl', 'wb') as f:
     pickle.dump(df_raw, f)
@@ -169,12 +166,12 @@ with open(f"{output_base}/df_ML_unscaled.pkl", "wb") as f:
 #     pickle.dump(df_barpress_train, f)
     
 
-with open(f'{output_base}/row_train.pkl', 'wb') as f:
-    pickle.dump(row_train, f)
+with open(f'{output_base}/peak_train.pkl', 'wb') as f:
+    pickle.dump(peak_train, f)
 # with open(f'{output_base}/row_valid.pkl', 'wb') as f:
 #     pickle.dump(row_valid, f)
-with open(f'{output_base}/row_test.pkl', 'wb') as f:
-    pickle.dump(row_test, f)
+with open(f'{output_base}/peak_test.pkl', 'wb') as f:
+    pickle.dump(peak_test, f)
 
 
 with open(f'{output_base}/df_ML.pkl', 'wb') as f:

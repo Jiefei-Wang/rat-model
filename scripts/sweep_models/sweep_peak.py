@@ -31,12 +31,13 @@ wandb_config = dict(wandb.config)
 cfg = SimpleNamespace(**wandb_config)
 
 
-row_train = pickle.load(open(os.path.join(output_base, "row_train.pkl"), "rb"))
+peak_train = pickle.load(open(os.path.join(output_base, "peak_train.pkl"), "rb"))
 
 
 
-y_all = (row_train["category"].astype(str) == "FR1").astype(int).values
-barpresses = row_train["data"] 
+y_all = peak_train['label'].values
+barpresses = peak_train["data"] 
+sample_weights = peak_train['sample_weight'].values
 
 features_list = [calculate_peak_vally_features(cell, wandb_config) for cell in barpresses]
 
@@ -51,7 +52,7 @@ gb = xgb.XGBClassifier(
     tree_method="hist",
     random_state=42
 )
-groups = row_train['id'].values
+groups = peak_train['id'].values
 kf = GroupKFold(n_splits=num_folds, shuffle=True, random_state=42)  
 cross_val_results = cross_val_score(
     gb,
@@ -60,6 +61,7 @@ cross_val_results = cross_val_score(
     cv=kf,
     groups=groups,
     scoring="roc_auc",
+    params={"sample_weight": sample_weights}
 )
 mean_auc = float(cross_val_results.mean())
 wandb.log({"val_auc": mean_auc, 'wandb_config': wandb_config})

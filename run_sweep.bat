@@ -1,8 +1,8 @@
 REM peak parameter
 set PYTHONPATH=%CD%
-python scripts\sweep_models\sweep_peak.py
+python scripts/sweep_params/sweep_params_peak.py
 
-python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-peaks/y003h4s8
+python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-peaks/t2hkz4h0
 
 
 REM Logistic Regression sweep

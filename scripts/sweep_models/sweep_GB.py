@@ -29,6 +29,7 @@ ML_feature_names = pickle.load(open(os.path.join(output_base, "ML_feature_names.
 
 x_train = df_ML_train.loc[:, ML_feature_names].values
 y_train = df_ML_train.loc[:, 'label'].values
+sample_weights = df_ML_train['sample_weight'].values
 
 
 model = xgb.XGBClassifier(
@@ -52,6 +53,7 @@ cross_val_results = cross_val_score(
     cv=kf,
     groups=groups,
     scoring="roc_auc",
+    fit_params={"sample_weight": sample_weights}
 )
 mean_auc = float(cross_val_results.mean())
 

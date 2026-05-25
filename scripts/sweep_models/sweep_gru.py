@@ -30,7 +30,6 @@ ML_feature_names = pickle.load(open(os.path.join(output_base, "ML_feature_names.
 x_train = df_ML_train[ML_feature_names].values
 y_train = df_ML_train['category'].values
 
-
 # id level train valid split
 unique_ids = df_ML_train['id'].unique()
 train_ids, valid_ids = train_test_split(unique_ids, test_size=0.1, random_state=42)
