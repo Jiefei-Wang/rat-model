@@ -49,9 +49,18 @@ df = manage_data(df_raw,
 len(df)
 # 27360 bar presses
 
-# recode: M=1, F=0
+# limit to first 30 minutes of data
+time_cutoff = 30*60*100
+df['data_start_index'] = df['data_index'].apply(lambda x: x[0])
+df['data_end_index'] = df['data_index'].apply(lambda x: x[1])
+df = df[df['data_end_index'].apply(lambda x: x <= time_cutoff)].reset_index(drop=True)
+len(df)
+# 24539
+
+# recode variables
 df['sex'] = df['sex'].map({'M': 1, 'F': 0})
 df['rat_type'] = df['rat_type'].map({'long-evans': 1, 'sprague-dawley': 0})
+
 
 rat_ids = df['id'].unique().tolist()
 len(rat_ids)
@@ -65,7 +74,10 @@ train_ids, test_ids = train_test_split(rat_ids, test_size=n_test, random_state=4
 row_train = df[df['id'].isin(train_ids)].reset_index(drop=True)
 row_test = df[df['id'].isin(test_ids)].reset_index(drop=True)
 (len(row_train), len(row_test))
-# (19749, 3404)
+# without time filter
+# (23116, 4244)
+# with time filter
+# (20644, 3895)
 
 
 # df_barpress_train = row_train[['category', 'data']]
@@ -92,6 +104,7 @@ assert set(barpress_features_names).issubset(set(x.columns.tolist())), "Some ML 
 
 
 # standardize the features
+# scale it before splitting to train and test set for simplicity. 
 scaler = StandardScaler()
 scaler.fit(x) 
 x_scaled = scaler.transform(x)
@@ -104,20 +117,28 @@ rat_features = ['sex', 'age', 'weight', 'rat_type']
 ML_feature_names = barpress_features_names + rat_features
 
 
-df_ML_unscaled = pd.concat([df[['id', 'category', 'data'] + rat_features], x], axis=1)
-df_ML = pd.concat([df[['id', 'category', 'data'] + rat_features], x_scaled], axis=1)
+df_ML_unscaled = pd.concat([df[['id', 'category', 'data', 'data_start_index', 'data_end_index', 'file_name', 'cohort'] + rat_features], x], axis=1)
+df_ML = pd.concat([df[['id', 'category', 'data', 'data_start_index', 'data_end_index', 'file_name', 'cohort'] + rat_features], x_scaled], axis=1)
+
+# weight by id and category. Each weight is the inverse of the number of presses for that id and category
+weights = df_ML.groupby(['id', 'category']).size().reset_index(name='press_count')
+weights['sample_weight'] = 1 / weights['press_count']
+weights = weights[['id', 'category', 'sample_weight']]
+df_ML = df_ML.merge(weights, on=['id', 'category'], how='left')
+df_ML_unscaled = df_ML_unscaled.merge(weights, on=['id', 'category'], how='left')
 
 
 
+df_ML['label'] = df_ML['category'].map({'FR1': 0, 'EXT': 1})
+df_ML_unscaled['label'] = df_ML_unscaled['category'].map({'FR1': 0, 'EXT': 1})
 
-df_ML['category'] = df_ML['category'].astype('category')
-df_ML['category'] = df_ML['category'].cat.reorder_categories(['FR1', 'EXT'], ordered=True)
-df_ML['label'] = df_ML['category']
+
+
 df_ML_train = df_ML[df_ML['id'].isin(train_ids)].reset_index(drop=True)
 df_ML_test = df_ML[df_ML['id'].isin(test_ids)].reset_index(drop=True)
 
 df_ML.shape
-# (23153, 19)
+# (24539, 26)
 
 
 
