@@ -4,17 +4,21 @@ import os
 import pandas as pd
 import numpy as np
 
-from modules.read_data import read_data
+from modules.read_data import read_category_data, read_cohort_type1
 from modules.data_management import manage_data
 from modules.feature_extraction import convert_to_features
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-df_raw1 = read_data('data/01 Sucrose FR1 vs EXT 8_2024')
-df_raw2 = read_data('data/FR1 vs EXT 09_25')
-df_raw2.id = df_raw2.id + 1000
+df_raw1 = read_cohort_type1('data/cohort1')
+df_raw2 = read_category_data('data/cohort2/WS EXT')
+df_raw3 = read_cohort_type1('data/cohort3')
+df_raw2.id = df_raw2.id + 2000
+df_raw3.id = df_raw3.id + 3000
 
-df_raw = pd.concat([df_raw1, df_raw2], axis=0).reset_index(drop=True)
+df_raw = pd.concat([df_raw1, df_raw2, df_raw3], axis=0).reset_index(drop=True)
+
+df_raw.columns
 
 len(df_raw)
 # 142 recordings
@@ -45,6 +49,7 @@ row_test = df[df['id'].isin(test_ids)].reset_index()
 (len(row_train), len(row_test))
 # (19749, 3404)
 
+
 # df_barpress_train = row_train[['category', 'data']]
 
 
@@ -62,6 +67,17 @@ params = {
 }
 
 x = convert_to_features(df, params=params) 
+
+
+# for all features, standardize them by z-score across the dataset
+features = ['total_press_duration', 'max_force', 'pk_num', 'pk_widths_max', 'pk_widths_mean', 'pk_widths_min', 'pk_sharp_max', 'pk_sharp_mean', 'pk_sharp_min', 'skewness', 'kurtosis', 'force_variation_rate', 'avg_first_5', 'avg_last_5']
+
+assert len(features) == x.shape[1]-1, "Number of features does not match the number of columns in x (excluding id)."
+
+x[features] = (x[features] - x[features].mean()) / x[features].std()
+
+
+
 feature_names = x.columns.tolist()
 
 ML_feature_names = ['total_press_duration', 'max_force', 'pk_widths_max', 'pk_widths_mean', 'pk_widths_min',  'pk_sharp_mean', 'pk_sharp_min', 'skewness', 'kurtosis', 'avg_first_5', 'avg_last_5', 'sex']

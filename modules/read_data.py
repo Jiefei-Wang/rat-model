@@ -34,13 +34,8 @@ def collapse_zeros_alike(data, threshold=1):
     
     return output
 
-def remove_trailing_zeros(lst):
-    while lst and lst[-1] <=0:
-        lst.pop()
-    return lst
 
-
-def extractData(file_path):
+def extract_raw_data(file_path):
     data = []
     start_processing = False
 
@@ -61,11 +56,16 @@ def extractData(file_path):
             if len(parts) > 1:
                 numbers = parts[1:]
                 data.extend(map(float, numbers))
+    
+    # Remove trailing zeros
+    while data and data[-1] == 0:
+        data.pop()
+        
     return data
 
 def filter_low_force(data): 
-    new_data = [x if x >= low_force_threshold else 0 for x in data]
     mask = [x < low_force_threshold for x in data]
+    new_data = [x if x >= low_force_threshold else 0 for x in data]
     return new_data, mask
 
 def to_bar_press(data):
@@ -157,18 +157,52 @@ def mask_constant_values(data):
 
 
 def process_file(file_path):
-    raw_data = extractData(file_path)
-    # remove low force
-    raw_data = [x if x >= low_force_threshold else 0 for x in raw_data]
-    raw_data = remove_trailing_zeros(raw_data)
-    collapsed_data = collapse_zeros_alike(raw_data)
+    raw_data = extract_raw_data(file_path)
+    return process_raw_data(raw_data)
+
+
+def process_raw_data(raw_data):
+    ## Remove excessive zeros
+    # raw_data_no_zeros = collapse_zeros_alike(raw_data)
+    # set low force values to 0
+    data, low_force_mask = filter_low_force(raw_data)
     # To bar press data: list of lists
-    bar_presses, bar_press_mask, bar_press_index = to_bar_press(collapsed_data)
+    bar_presses, bar_press_mask, bar_press_index = to_bar_press(data)
     # If a bar press has constant values, remove it
     constant_value_masks = [mask_constant_values(press) for press in bar_presses]
     bar_presses_filtered = [press for press, mask in zip(bar_presses, constant_value_masks) if not mask[0]]
     bar_presses_filtered_index = [index for index, mask in zip(bar_press_index, constant_value_masks) if not mask[0]]
-    return bar_presses_filtered, bar_presses_filtered_index, raw_data, collapsed_data, bar_presses, bar_press_mask, bar_press_index, constant_value_masks
+    bar_presses_constant = [press for press, mask in zip(bar_presses, constant_value_masks) if mask[0]]
+    bar_presses_constant_index = [index for index, mask in zip(bar_press_index, constant_value_masks) if mask[0]]
+    return bar_presses_filtered, bar_presses_filtered_index, low_force_mask, bar_press_mask, bar_presses_constant, bar_presses_constant_index, constant_value_masks
+
+
+
+def process_raw_datas(raw_data_list):
+    dt = []
+    ## progress bar
+    for i in tqdm(range(len(raw_data_list))):
+        raw_data = raw_data_list[i]
+        ## file base name with no folder
+        bar_presses_filtered, bar_presses_filtered_index, low_force_mask, bar_press_mask, bar_presses_constant, bar_presses_constant_index, constant_value_masks = process_raw_data(raw_data)
+        
+        ## combine the data
+        rat = {
+            'data': bar_presses_filtered,
+            'data_index': bar_presses_filtered_index,
+            'raw_data': raw_data,
+            'low_force_mask': low_force_mask,
+            'bar_presses_constant': bar_presses_constant,
+            'raw_bar_press_mask': bar_press_mask,
+            'bar_presses_constant_index': bar_presses_constant_index,
+            'constant_value_masks': constant_value_masks
+            }
+        dt += [rat]
+    
+    df = pd.DataFrame(dt)
+    return df
+
+
 
 def list_all_files(PATH):
     """
@@ -177,10 +211,12 @@ def list_all_files(PATH):
     files_path = []
     for root, subFolder, all_files in os.walk(PATH):
         for item in all_files:
-            if item.startswith("!"):
+            if "Subject" in item:
                 fileNamePath = str(os.path.join(root, item))
                 files_path += [fileNamePath]
     return files_path
+
+
 
 def read_category_data(folder):
     """
@@ -193,46 +229,38 @@ def read_category_data(folder):
     files = list_all_files(folder)
     category = os.path.basename(folder)
     
-    dt = []
-    ## progress bar
+    raw_data_list = []
+    id_list = []
+    file_name_list = []
     for i in tqdm(range(len(files))):
         file_path = files[i]
         ## file base name with no folder
         fileName = os.path.basename(file_path)
-        bar_presses_filtered, bar_presses_filtered_index, raw_data, collapsed_data, bar_presses, bar_press_mask, bar_press_index, constant_value_masks = process_file(file_path)
+        raw_data = extract_raw_data(file_path)
+        raw_data_list += [raw_data]
         
+        # extract the rat meta from the file name
         rat_identifier = file_path.split('Subject ')[1]
         ## get integer part of the rat id
         id = int(''.join(filter(str.isdigit, rat_identifier)))
-        ## sex
-        sex = ''.join(filter(str.isalpha, rat_identifier)).upper()
-        ## Default missing suffix to male
-        if sex == '':
-            sex = 'M'
-        ## F,M to 0,1 (non-M falls back to 0)
-        sex = 1 if sex == 'M' else 0
-        ## combine the data
-        rat = {
-            'id': id,
-            'category': category,
-            'file': fileName,
-            'sex': sex,
-            'data': bar_presses_filtered,
-            'data_index': bar_presses_filtered_index,
-            'raw_data': raw_data,
-            'collapsed_data': collapsed_data,
-            'raw_bar_press': bar_presses,
-            'raw_bar_press_mask': bar_press_mask,
-            'raw_bar_press_index': bar_press_index,
-            'constant_value_masks': constant_value_masks
-            }
-        dt += [rat]
+        id_list += [id]
+        file_name_list += [fileName]
     
-    df = pd.DataFrame(dt)
+    df_meta = pd.DataFrame({
+        'id': id_list,
+        'file_name': file_name_list
+    })
+    
+    df_data = process_raw_datas(raw_data_list)
+    
+    df = pd.concat([df_meta, df_data], axis=1)
+    df['category'] = category
     return df
+    
+    
 
 # data_root = 'data/01 Sucrose FR1 vs EXT 8_2024'
-def read_data(data_root):
+def read_cohort_type1(data_root):
     """
     Read data from the data root folder and return a data frame
     """
@@ -250,4 +278,49 @@ def read_data(data_root):
     
     df = pd.concat(dt)
     df.reset_index(drop=True, inplace=True)
+    return df
+
+
+def read_cohort_2(path, time_cutoff = 5*60*100):
+    """
+    Read data from the cohort 2 folder and return a data frame
+    folder name format: {data_category}/*/{data_file}
+    !2024-07-15_15h30m.Subject 14M
+    data name format: !{date}_{time}.Subject {rat_id}{gender}
+    """    
+    
+    files = list_all_files(path)
+    
+    raw_data_list = []
+    id_list = []
+    file_name_list = []
+    category_list = []
+    for i in tqdm(range(len(files))):
+        file_path = files[i]
+        ## file base name with no folder
+        fileName = os.path.basename(file_path)
+        raw_data = extract_raw_data(file_path)
+        raw_data_fr1 = raw_data[:time_cutoff]
+        raw_data_ext = raw_data[time_cutoff:]
+        
+        
+        raw_data_list += [raw_data_fr1, raw_data_ext]
+        
+        # extract the rat meta from the file name
+        rat_identifier = file_path.split('Subject ')[1]
+        ## get integer part of the rat id
+        id = int(''.join(filter(str.isdigit, rat_identifier)))
+        id_list += [id, id]
+        file_name_list += [fileName, fileName]
+        category_list += ['FR1', 'EXT']
+    
+    df_meta = pd.DataFrame({
+        'id': id_list,
+        'file_name': file_name_list,
+        'category': category_list
+    })
+    
+    df_data = process_raw_datas(raw_data_list)
+    
+    df = pd.concat([df_meta, df_data], axis=1)
     return df
