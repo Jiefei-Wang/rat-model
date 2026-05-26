@@ -55,6 +55,7 @@ def dataframe_to_tensors(dataframe, device=None):
     # Extract sequences and labels
     sequences = dataframe['data'].tolist()
     labels = dataframe['label'].tolist()
+    sample_weights = dataframe.get('sample_weight')
     
     actual_lengths = []
     
@@ -75,17 +76,21 @@ def dataframe_to_tensors(dataframe, device=None):
     # Convert to tensors and move to device
     padded_tensor = padded_sequences.to(device)
     labels_tensor = torch.tensor(labels, dtype=torch.long).to(device)
+    if sample_weights is None:
+        weights_tensor = torch.ones(len(labels), dtype=torch.float32).to(device)
+    else:
+        weights_tensor = torch.tensor(sample_weights.tolist(), dtype=torch.float32).to(device)
     actual_lengths = torch.tensor(actual_lengths, dtype=torch.long).to('cpu') # Keep lengths on CPU for packing
     
-    return padded_tensor, labels_tensor, actual_lengths
+    return padded_tensor, labels_tensor, weights_tensor, actual_lengths
 
 
-def create_data_loader(x, y, lengths, features=None, batch_size=32, shuffle=True):
+def create_data_loader(x, y, weights, lengths, features=None, batch_size=32, shuffle=True):
     """Create a DataLoader for batched training"""
     if features is not None:
-        dataset = torch.utils.data.TensorDataset(x, y, lengths, features)
+        dataset = torch.utils.data.TensorDataset(x, y, weights, lengths, features)
     else:
-        dataset = torch.utils.data.TensorDataset(x, y, lengths)
+        dataset = torch.utils.data.TensorDataset(x, y, weights, lengths)
     
     return torch.utils.data.DataLoader(
         dataset, 
@@ -119,8 +124,8 @@ def big_train_loop(model,
     model = model.to(device)
     
     # Convert all data to tensors and load directly to GPU
-    train_x, train_y, train_lengths = dataframe_to_tensors(nn_train, device=device)
-    valid_x, valid_y, valid_lengths = dataframe_to_tensors(nn_valid, device=device)
+    train_x, train_y, train_weights, train_lengths = dataframe_to_tensors(nn_train, device=device)
+    valid_x, valid_y, valid_weights, valid_lengths = dataframe_to_tensors(nn_valid, device=device)
     
     train_y_cpu = train_y.cpu().numpy()
     valid_y_cpu = valid_y.cpu().numpy()
@@ -131,14 +136,14 @@ def big_train_loop(model,
         features_valid = torch.tensor(features_valid.to_numpy(), dtype=torch.float32).to(device)
     
     # Create data loader for training
-    train_loader = create_data_loader(train_x, train_y, train_lengths, features_train, batch_size, shuffle=True)
+    train_loader = create_data_loader(train_x, train_y, train_weights, train_lengths, features_train, batch_size, shuffle=True)
     # for batch_data in train_loader:
     #     break
     
     
     
     lr = 0.001
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.CrossEntropyLoss(reduction='none')
     if optimizer is None:
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
@@ -155,14 +160,15 @@ def big_train_loop(model,
         
         for batch_data in train_loader:
             if use_features:
-                batch_x, batch_y, batch_lengths, batch_features = batch_data
+                batch_x, batch_y, batch_weights, batch_lengths, batch_features = batch_data
             else:
-                batch_x, batch_y, batch_lengths = batch_data
+                batch_x, batch_y, batch_weights, batch_lengths = batch_data
                 batch_features = None
             
             optimizer.zero_grad()
             train_outputs = model(batch_x, batch_lengths, batch_features)
             train_loss = criterion(train_outputs, batch_y)
+            train_loss = (train_loss * batch_weights).sum() / batch_weights.sum().clamp_min(1e-12)
             train_loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
@@ -183,6 +189,7 @@ def big_train_loop(model,
         with torch.no_grad():
             valid_outputs = model(valid_x, valid_lengths, features_valid)
             valid_loss = criterion(valid_outputs, valid_y)
+            valid_loss = (valid_loss * valid_weights).sum() / valid_weights.sum().clamp_min(1e-12)
         
         with torch.no_grad():
             train_probs = torch.softmax(all_train_outputs, dim=1)[:, 1]

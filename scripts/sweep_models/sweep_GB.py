@@ -53,7 +53,7 @@ cross_val_results = cross_val_score(
     cv=kf,
     groups=groups,
     scoring="roc_auc",
-    fit_params={"sample_weight": sample_weights}
+    params={"sample_weight": sample_weights}
 )
 mean_auc = float(cross_val_results.mean())
 

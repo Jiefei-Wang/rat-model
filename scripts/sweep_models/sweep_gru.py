@@ -34,8 +34,8 @@ y_train = df_ML_train['category'].values
 unique_ids = df_ML_train['id'].unique()
 train_ids, valid_ids = train_test_split(unique_ids, test_size=0.1, random_state=42)
 
-nn_train0 = df_ML_train[df_ML_train['id'].isin(train_ids)].reset_index(drop=True)[['label', 'data']]
-nn_valid = df_ML_train[df_ML_train['id'].isin(valid_ids)].reset_index(drop=True)[['label', 'data']]
+nn_train0 = df_ML_train[df_ML_train['id'].isin(train_ids)].reset_index(drop=True)[['label', 'data', 'sample_weight']]
+nn_valid = df_ML_train[df_ML_train['id'].isin(valid_ids)].reset_index(drop=True)[['label', 'data', 'sample_weight']]
 if use_features:
     features_train = df_ML_train[df_ML_train['id'].isin(train_ids)].reset_index(drop=True)[ML_feature_names]
     features_valid = df_ML_train[df_ML_train['id'].isin(valid_ids)].reset_index(drop=True)[ML_feature_names]

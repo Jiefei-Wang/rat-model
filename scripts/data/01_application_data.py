@@ -16,7 +16,7 @@ len(df_app)
 # 19 recordings
 
 truncate_size = 3
-max_press = 1000
+max_press = 400
 standardize = False
 min_press_len = 10
 df = manage_data(df_app, 

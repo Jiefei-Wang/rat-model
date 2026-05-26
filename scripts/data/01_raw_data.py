@@ -95,13 +95,13 @@ peak_test = df[df['id'].isin(test_ids)].reset_index(drop=True)
 # feature dataset 
 
 params = {
-    "distance":28,
-    "height":2,
+    "distance":44,
+    "height":24,
     "plateau_size":None,
-    "prominence":2.6,
-    "rel_height":0.8,
+    "prominence":5.4,
+    "rel_height":0.9,
     "threshold":None,
-    "width":12,
+    "width":1,
     "wlen":None
 }
 
