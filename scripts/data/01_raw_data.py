@@ -2,7 +2,11 @@
 import pickle
 import os
 import pandas as pd
-import numpy as np
+import sys
+
+# use project root as the import path
+if os.getcwd() not in sys.path:
+    sys.path.insert(0, os.getcwd())
 
 from modules.read_data import  read_cohort_type1, read_cohort_type2
 from modules.data_management import manage_data
@@ -30,6 +34,8 @@ rat_meta['cohort'] = rat_meta['cohort'].astype(int)
 df_raw = df_raw.merge(rat_meta, on=['id', 'cohort'], how='inner')
 # reset id so that different cohorts have different id spaces
 df_raw = df_raw.rename(columns={'id': 'within_cohort_id'})
+# if within_cohort_id ends with M or F, remove it
+df_raw['within_cohort_id'] = df_raw['within_cohort_id'].apply(lambda x: x[:-1] if x[-1] in ['M', 'F'] else x)
 df_raw['id'] = "C" + df_raw['cohort'].astype(str) + ":" + df_raw['within_cohort_id'].astype(str)
 
 
@@ -67,6 +73,8 @@ df['label'] = df['category'].map({'FR1': 0, 'EXT': 1})
 # weight by id and category. Each weight is the inverse of the number of presses for that id and category
 weights = df.groupby(['id', 'category']).size().reset_index(name='press_count')
 weights['sample_weight'] = 1 / weights['press_count']
+# normalize the sample weight so that the mean sample weight is 1
+weights['sample_weight'] = weights['sample_weight'] / weights['sample_weight'].mean()
 weights = weights[['id', 'category', 'sample_weight']]
 df = df.merge(weights, on=['id', 'category'], how='left')
 
@@ -95,21 +103,16 @@ peak_test = df[df['id'].isin(test_ids)].reset_index(drop=True)
 # feature dataset 
 
 params = {
-    "distance":44,
-    "height":24,
-    "plateau_size":None,
-    "prominence":5.4,
-    "rel_height":0.9,
-    "threshold":None,
-    "width":1,
-    "wlen":None
+    "distance":20,
+    "height":20,
+    "prominence":0.2,
+    "width":2
 }
 
 x = extract_barpress_features(df, params=params) 
 
-barpress_features_names = ['total_press_duration', 'max_force', 'pk_widths_max', 'pk_widths_mean', 'pk_widths_min',  'pk_sharp_mean', 'pk_sharp_min', 'skewness', 'kurtosis', 'avg_first_5', 'avg_last_5']
-
-assert set(barpress_features_names).issubset(set(x.columns.tolist())), "Some ML feature names are not in the extracted feature names."
+barpress_features_names = x.columns.tolist()
+# ['total_press_duration', 'max_force', 'pk_num', 'pk_widths_max', 'pk_widths_mean', 'pk_widths_min', 'pk_sharp_max', 'pk_sharp_mean', 'pk_sharp_min', 'skewness', 'kurtosis', 'force_variation_rate', 'avg_first_5', 'avg_last_5']
 
 
 # standardize the features

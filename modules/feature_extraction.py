@@ -23,7 +23,7 @@ def calculate_max_force(x, params):
     return max(x)  # Max force of each bar press
 
 def calculate_peak_features(cell, params):
-    peak_params = ['height', 'threshold', 'distance', 'prominence', 'width', 'wlen', 'rel_height', 'plateau_size']
+    peak_params = ['height', 'distance', 'prominence', 'width']
     args = {key: params.get(key) for key in peak_params if key in params}
     
     peaks, _ = find_peaks(

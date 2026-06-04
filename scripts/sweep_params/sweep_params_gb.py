@@ -10,15 +10,15 @@ sweep_config = {
 }
 parameters = {
     # include shallow->deep transitions
-    "max_depth": {"values": [1, 2, 3, 4, 6, 8]},              
+    "max_depth": {"values": [1, 3, 5, 7]},              
     # fine near low values + stronger regularization
-    "min_child_weight": {"values": [1, 2, 3, 5, 8]},  
+    "min_child_weight": {"values": [1, 3, 5, 7]},  
     # low/mid/high sampling        
     "subsample": {"values": [0.6, 0.75, 0.9, 1.0]},     
     # feature sampling sensitivity      
     "colsample_bytree": {"values": [0.6, 0.75, 0.9, 1.0]},
     # weak/default/strong L2    
-    "reg_lambda": {"values": [0.1, 1.0, 10.0]},               
+    "reg_lambda": {"values": [0, 0.1, 0.5, 1.0, 3, 10.0]},               
 }
 
 sweep_config["parameters"] = parameters
