@@ -27,7 +27,8 @@ df_ML_train = pickle.load(open(os.path.join(output_base, "df_ML_train.pkl"), "rb
 ML_feature_names = pickle.load(open(os.path.join(output_base, "ML_feature_names.pkl"), "rb"))
 
 # exclude features that have high correlation with other features
-ML_feature_names = list(set(ML_feature_names) - set(['force_variation_rate', 'pk_sharp_max', 'pk_sharp_min']))
+excluded_features = {'force_variation_rate', 'pk_sharp_max', 'pk_sharp_min'}
+ML_feature_names = [f for f in ML_feature_names if f not in excluded_features]
 
 
 x_train = df_ML_train.loc[:, ML_feature_names].values

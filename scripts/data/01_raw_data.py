@@ -11,8 +11,6 @@ if os.getcwd() not in sys.path:
 from modules.read_data import  read_cohort_type1, read_cohort_type2
 from modules.data_management import manage_data
 from modules.feature_extraction import extract_barpress_features
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 
 df_raw1 = read_cohort_type1('data/cohort1')
 df_raw2 = read_cohort_type2('data/cohort2/WS EXT')
@@ -43,6 +41,7 @@ df_raw.columns
 len(df_raw)
 # 186 recordings
 
+
 truncate_size = 3
 max_press = 400
 standardize = False
@@ -68,24 +67,31 @@ df['sex'] = df['sex'].map({'M': 1, 'F': 0})
 df['rat_type'] = df['rat_type'].map({'long-evans': 1, 'sprague-dawley': 0})
 df['label'] = df['category'].map({'FR1': 0, 'EXT': 1})
 
-
-
 # weight by id and category. Each weight is the inverse of the number of presses for that id and category
 weights = df.groupby(['id', 'category']).size().reset_index(name='press_count')
 weights['sample_weight'] = 1 / weights['press_count']
-# normalize the sample weight so that the mean sample weight is 1
-weights['sample_weight'] = weights['sample_weight'] / weights['sample_weight'].mean()
 weights = weights[['id', 'category', 'sample_weight']]
 df = df.merge(weights, on=['id', 'category'], how='left')
+# normalize the sample weight so that the mean sample weight is 1
+df['sample_weight'] = df['sample_weight'] / df['sample_weight'].mean()
+
 
 
 rat_ids = sorted(df['id'].unique().tolist())
 len(rat_ids)
 # 63 rats
 
-# keep n_test rats for testing
-n_test = 10
-train_ids, test_ids = train_test_split(rat_ids, test_size=n_test, random_state=42)
+# keep 3 rats from each cohort for testing
+n_test_per_cohort = 3
+rat_cohorts = df[['id', 'cohort']].drop_duplicates().reset_index(drop=True)
+test_ids = (
+    rat_cohorts
+    .groupby('cohort', group_keys=False)
+    .sample(n=n_test_per_cohort, random_state=42)['id']
+    .tolist()
+)
+train_ids = sorted(set(rat_ids) - set(test_ids))
+test_ids = sorted(test_ids)
 
 # basic df data split
 peak_train = df[df['id'].isin(train_ids)].reset_index(drop=True)
@@ -94,7 +100,7 @@ peak_test = df[df['id'].isin(test_ids)].reset_index(drop=True)
 # without time filter
 # (23116, 4244)
 # with time filter
-# (20644, 3895)
+# (21282, 3257)
 
 
 # df_barpress_train = row_train[['category', 'data']]
@@ -115,13 +121,13 @@ barpress_features_names = x.columns.tolist()
 # ['total_press_duration', 'max_force', 'pk_num', 'pk_widths_max', 'pk_widths_mean', 'pk_widths_min', 'pk_sharp_max', 'pk_sharp_mean', 'pk_sharp_min', 'skewness', 'kurtosis', 'force_variation_rate', 'avg_first_5', 'avg_last_5']
 
 
-# standardize the features
-# scale it before splitting to train and test set for simplicity. 
-scaler = StandardScaler()
-scaler.fit(x) 
-x_scaled = scaler.transform(x)
-# convert back to dataframe
-x_scaled = pd.DataFrame(x_scaled, columns=x.columns.tolist())
+# # standardize the features
+# # scale it before splitting to train and test set for simplicity. 
+# scaler = StandardScaler()
+# scaler.fit(x) 
+# x_scaled = scaler.transform(x)
+# # convert back to dataframe
+# x_scaled = pd.DataFrame(x_scaled, columns=x.columns.tolist())
 
 
 
@@ -129,8 +135,8 @@ rat_features = ['sex', 'age', 'weight', 'rat_type']
 ML_feature_names = barpress_features_names + rat_features
 
 
-df_ML_unscaled = pd.concat([df[['id', 'category', 'data', 'data_start_index', 'data_end_index', 'file_name', 'cohort', 'label', 'sample_weight'] + rat_features], x], axis=1)
-df_ML = pd.concat([df[['id', 'category', 'data', 'data_start_index', 'data_end_index', 'file_name', 'cohort', 'label', 'sample_weight'] + rat_features], x_scaled], axis=1)
+df_ML = pd.concat([df[['id', 'category', 'data', 'data_start_index', 'data_end_index', 'file_name', 'cohort', 'label', 'sample_weight'] + rat_features], x], axis=1)
+# df_ML = pd.concat([df[['id', 'category', 'data', 'data_start_index', 'data_end_index', 'file_name', 'cohort', 'label', 'sample_weight'] + rat_features], x_scaled], axis=1)
 
 
 
@@ -138,9 +144,7 @@ df_ML_train = df_ML[df_ML['id'].isin(train_ids)].reset_index(drop=True)
 df_ML_test = df_ML[df_ML['id'].isin(test_ids)].reset_index(drop=True)
 
 df_ML.shape
-# (24539, 26)
-
-
+# (24539, 28)
 
 
 ## save to output/data using pickle
@@ -159,11 +163,11 @@ with open(f'{output_base}/df_raw.pkl', 'wb') as f:
     pickle.dump(df_raw, f)
 
 
-with open(f"{output_base}/scaler.pkl", "wb") as f:
-    pickle.dump(scaler, f)
+# with open(f"{output_base}/scaler.pkl", "wb") as f:
+#     pickle.dump(scaler, f)
 
-with open(f"{output_base}/df_ML_unscaled.pkl", "wb") as f:
-    pickle.dump(df_ML_unscaled, f)
+# with open(f"{output_base}/df_ML_unscaled.pkl", "wb") as f:
+#     pickle.dump(df_ML_unscaled, f)
 
 # with open(f'{output_base}/df_barpress_train.pkl', 'wb') as f:
 #     pickle.dump(df_barpress_train, f)

@@ -1,12 +1,9 @@
 # We assume the chunk size is 1 in this script!!
 
 # scripts/sweep/peak_param_sweep.py
-import os, pickle, argparse
-from types import SimpleNamespace
-import numpy as np
+import os, pickle
 import pandas as pd
 from sklearn.model_selection import GroupKFold, cross_val_score
-from sklearn.preprocessing import StandardScaler
 import xgboost as xgb
 import wandb
 
@@ -28,7 +25,6 @@ wandb_config = {
 }
 
 wandb_config = dict(wandb.config)
-cfg = SimpleNamespace(**wandb_config)
 
 
 peak_train = pickle.load(open(os.path.join(output_base, "peak_train.pkl"), "rb"))
@@ -43,9 +39,6 @@ features_list = [calculate_peak_vally_features(cell, wandb_config) for cell in b
 
 features_list = pd.DataFrame(features_list)
 
-scaler = StandardScaler()
-scaler.fit(features_list) 
-features_list = scaler.transform(features_list)
 
 # k-fold cross validation
 gb = xgb.XGBClassifier(

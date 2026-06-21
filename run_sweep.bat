@@ -2,7 +2,7 @@ REM peak parameter
 set PYTHONPATH=%CD%
 python scripts/sweep_params/sweep_params_peak.py
 
-python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-peaks/dgrdvshl
+python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-peaks/soh1ew9g
 
 
 REM Logistic Regression sweep
@@ -18,9 +18,9 @@ REM https://wandb.ai/szwjf08-utmb/rat-model-lg/sweeps/9vjahnk9?nw=nwuserszwjf08
 REM GB
 set PYTHONPATH=%CD%
 python scripts\sweep_params\sweep_params_gb.py
-wandb agent szwjf08-utmb/rat-model-gb/jdjtzr4w
+wandb agent szwjf08-utmb/rat-model-gb/bjq496cl
 
-python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-gb/jdjtzr4w
+python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-gb/bjq496cl
 
 
 

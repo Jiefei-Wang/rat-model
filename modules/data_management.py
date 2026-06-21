@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
 
-
 def manage_data(df, truncate_size, max_press, standardize, min_press_len = 10, max_press_len = 500):
+    df = df.copy()
+    df["gaps"] = df["data_index"].apply(calc_gaps)
     df2 = truncate_data(df, truncate_size)
-    df3 = df2.explode(['data', 'data_index']).reset_index(drop=True)
+    df3 = df2.explode(['data', 'data_index', "gaps"]).reset_index(drop=True)
+    df3["gaps"] = pd.to_numeric(df3["gaps"], errors="coerce")
     df4 = cap_max_press(df3, max_press)
     df5 = standardize_data(df4) if standardize else df4
     # filter out the short presses
@@ -18,6 +20,7 @@ def truncate_data(df, length):
     df = df.copy()
     df['data'] = df['data'].apply(lambda x: x[length:])
     df['data_index'] = df['data_index'].apply(lambda x: x[length:])
+    df['gaps'] = df['gaps'].apply(lambda x: x[length:])
     return df
 
 # mean and std standardization
@@ -28,6 +31,17 @@ def standardize_data(df):
     df['data'] = df.apply(lambda x: [(i - x.data_mean)/x.data_std for i in x.data], axis=1)
     df = df.drop(columns=['data_mean', 'data_std'])
     return df
+
+
+def calc_gaps(intervals):
+    gaps = [np.nan]
+    gaps.extend(
+        curr_start - prev_end
+        for (_, prev_end), (curr_start, _) in zip(intervals[:-1], intervals[1:])
+    )
+    return gaps
+
+
 
 
 ## make sure the maximum press value is capped at max_press

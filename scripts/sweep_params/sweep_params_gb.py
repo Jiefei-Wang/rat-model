@@ -10,9 +10,9 @@ sweep_config = {
 }
 parameters = {
     # include shallow->deep transitions
-    "max_depth": {"values": [1, 3, 5, 7]},              
+    "max_depth": {"values": [1, 3, 5, 7, 9]},              
     # fine near low values + stronger regularization
-    "min_child_weight": {"values": [1, 3, 5, 7]},  
+    # "min_child_weight": {"values": [1, 3, 5]},  
     # low/mid/high sampling        
     "subsample": {"values": [0.6, 0.75, 0.9, 1.0]},     
     # feature sampling sensitivity      
