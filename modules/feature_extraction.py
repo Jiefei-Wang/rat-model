@@ -108,6 +108,7 @@ def extract_barpress_features(df, params={}):
             feature_df[feature_name] = features
             
     feature_df2 = pd.DataFrame(feature_df)
-    feature_df2['gaps'] = df['gaps']
+    # decide not to include gaps as a feature since it reflects the incentive
+    # feature_df2['gaps'] = df['gaps']
 
     return feature_df2

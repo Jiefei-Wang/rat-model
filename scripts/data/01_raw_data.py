@@ -109,10 +109,10 @@ peak_test = df[df['id'].isin(test_ids)].reset_index(drop=True)
 # feature dataset 
 
 params = {
-    "distance":20,
+    "distance":10,
     "height":20,
-    "prominence":0.2,
-    "width":2
+    "width":5,
+    "prominence":10
 }
 
 x = extract_barpress_features(df, params=params) 

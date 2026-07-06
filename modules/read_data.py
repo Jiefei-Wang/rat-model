@@ -174,7 +174,8 @@ def list_all_files(PATH):
     """
     files_path = []
     for root, subFolder, all_files in os.walk(PATH):
-        for item in all_files:
+        subFolder.sort()
+        for item in sorted(all_files):
             subject_tail = item.split("Subject ", 1)[-1]
             if "Subject" in item and "." not in subject_tail:
                 fileNamePath = str(os.path.join(root, item))
@@ -228,7 +229,7 @@ def read_cohort_type1(data_root):
     Read data from the data root folder and return a data frame
     """
     ## folders only
-    folders = [str(f) for f in Path(data_root).iterdir() if f.is_dir()]
+    folders = sorted(str(f) for f in Path(data_root).iterdir() if f.is_dir())
     
     dt = []
     for i in range(len(folders)):
