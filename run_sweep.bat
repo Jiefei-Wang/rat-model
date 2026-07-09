@@ -8,9 +8,9 @@ python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08
 REM GB
 set PYTHONPATH=%CD%
 python scripts\sweep_params\sweep_params_gb.py
-wandb agent szwjf08-utmb/rat-model-gb/s3r09mtd
+wandb agent szwjf08-utmb/rat-model-gb/685yl28c
 
-python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-gb/s3r09mtd
+python scripts/sweep_params/parallel_sweep.py --num-proc 12 --agent-path szwjf08-utmb/rat-model-gb/685yl28c
 
 
 REM Logistic Regression sweep
